@@ -1,0 +1,4 @@
+{
+  "_comment": "Ashby job board names, e.g. https://jobs.ashbyhq.com/{boardName}. Add companies you want monitored for hiring signals here.",
+  "boardNames": []
+}

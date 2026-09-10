@@ -1,0 +1,14 @@
+{
+  "name": "@leads/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "client.ts",
+  "exports": {
+    ".": "./client.ts",
+    "./types.js": "./types.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.1"
+  }
+}

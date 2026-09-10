@@ -1,0 +1,76 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
+import { extractSiteSignals, stripHtml } from "./shared.js";
+
+const CONFIG_PATH = fileURLToPath(new URL("../../../config/target-companies/agencies.json", import.meta.url));
+
+interface AgencySeed {
+  name: string;
+  website: string;
+  twitterHandle?: string;
+}
+
+const agenciesConfig: { agencies: AgencySeed[] } = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
+
+const CANDIDATE_PATHS = ["", "/about", "/case-studies", "/work", "/clients"];
+
+async function fetchPageText(baseUrl: string, path: string): Promise<string | null> {
+  try {
+    const res = await fetch(new URL(path, baseUrl).toString(), {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; personal-lead-research/1.0)" },
+    });
+    if (!res.ok) return null;
+    return stripHtml(await res.text());
+  } catch {
+    return null; // page doesn't exist at this path, or the fetch failed — not fatal
+  }
+}
+
+/**
+ * Visits an agency's own public pages (a single, low-volume fetch per page —
+ * not crawling a third-party directory) and looks for self-reported scale
+ * signals: disclosed ad-spend figures, number of channels managed, prior
+ * crypto/Web3 client work, and team size.
+ */
+export const websiteEnrichmentConnector: SourceConnector = {
+  name: "agency-website-enrichment",
+  vertical: ["card_affiliate"],
+  enabled: true,
+  requiresApiKey: false,
+  async fetch(_config: SearchConfig): Promise<RawSignal[]> {
+    const agencies: AgencySeed[] =
+      (_config.agencies as AgencySeed[] | undefined) ?? agenciesConfig.agencies;
+    const signals: RawSignal[] = [];
+
+    for (const agency of agencies) {
+      const texts: string[] = [];
+      for (const path of CANDIDATE_PATHS) {
+        const text = await fetchPageText(agency.website, path);
+        if (text) texts.push(text);
+      }
+      if (texts.length === 0) continue;
+
+      const combinedText = texts.join(" ").slice(0, 20_000);
+      const siteSignals = extractSiteSignals(combinedText);
+
+      signals.push({
+        sourceConnector: "agency-website-enrichment",
+        vertical: "card_affiliate",
+        projectName: agency.name,
+        website: agency.website,
+        signalText:
+          siteSignals.matchedSnippet ??
+          `${agency.name} manages ${siteSignals.channelsCount} known ad channel type(s)${
+            siteSignals.teamSizeEstimate ? `, team size ~${siteSignals.teamSizeEstimate}` : ""
+          }.`,
+        evidenceUrl: agency.website,
+        discoveredAt: new Date(),
+        meta: { ...siteSignals },
+        raw: { agency, combinedTextLength: combinedText.length },
+      });
+    }
+
+    return signals;
+  },
+};

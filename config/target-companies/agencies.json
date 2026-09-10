@@ -1,0 +1,4 @@
+{
+  "_comment": "No free discovery API exists for ad/media-buying agencies (Clutch and DesignRush have no public API; Meta Ad Library's free tier only covers political/social/housing/credit ads, not general commercial ad spend; Google Custom Search is closed to new signups). Seed this list yourself — from manual research, referrals, or roundup articles you find — and the pipeline enriches + scores each one from its own public site and Twitter presence.",
+  "agencies": []
+}

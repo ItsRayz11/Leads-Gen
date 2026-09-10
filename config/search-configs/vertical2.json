@@ -1,0 +1,15 @@
+{
+  "_comment": "Fallback search configs used only when the search_configs DB table has no enabled rows for this vertical. Add rows to the DB table instead once the dashboard has a way to manage them, or edit this file directly for now.",
+  "configs": [
+    {
+      "name": "New launches needing marketing/community help",
+      "keywords": ["Show HN", "Launch HN"],
+      "excludeKeywords": []
+    },
+    {
+      "name": "Startups hiring marketing/community roles",
+      "keywords": ["hiring marketing", "hiring community manager", "seeking growth marketer"],
+      "excludeKeywords": []
+    }
+  ]
+}

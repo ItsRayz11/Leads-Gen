@@ -1,0 +1,22 @@
+{
+  "name": "@leads/workers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import:legacy": "tsx import-export/import-legacy-csv.ts",
+    "export:csv": "tsx import-export/export-csv.ts",
+    "run:vertical1": "tsx pipeline/run-vertical1-hiring.ts",
+    "run:vertical3": "tsx pipeline/run-vertical3-card-affiliate.ts",
+    "run:vertical2": "tsx pipeline/run-vertical2-general.ts",
+    "enrich:contacts": "tsx pipeline/enrich-contacts.ts"
+  },
+  "dependencies": {
+    "@leads/core": "*",
+    "@leads/db": "*",
+    "@supabase/supabase-js": "^2.46.1",
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.2",
+    "rss-parser": "^3.13.0"
+  }
+}

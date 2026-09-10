@@ -1,0 +1,4 @@
+{
+  "_comment": "Lever company slugs, e.g. https://jobs.lever.co/{slug}. Add companies you want monitored for hiring signals here.",
+  "companySlugs": []
+}

@@ -1,0 +1,25 @@
+{
+  "name": "leads-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "workers"
+  ],
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked > packages/db/types.ts",
+    "import:legacy": "npm run import:legacy -w workers",
+    "export:csv": "npm run export:csv -w workers",
+    "run:vertical1": "npm run run:vertical1 -w workers",
+    "run:vertical3": "npm run run:vertical3 -w workers",
+    "run:vertical2": "npm run run:vertical2 -w workers",
+    "enrich:contacts": "npm run enrich:contacts -w workers",
+    "dev:web": "npm run dev -w apps/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "@types/node": "^22.9.0"
+  }
+}

@@ -15,11 +15,15 @@
     "run:vertical3": "npm run run:vertical3 -w workers",
     "run:vertical2": "npm run run:vertical2 -w workers",
     "enrich:contacts": "npm run enrich:contacts -w workers",
-    "dev:web": "npm run dev -w apps/web"
+    "dev:web": "npm run dev -w apps/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p workers/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p tests/tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0",
     "tsx": "^4.19.2",
-    "@types/node": "^22.9.0"
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
   }
 }

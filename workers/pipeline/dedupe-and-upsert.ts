@@ -3,11 +3,12 @@ import type { RawSignal, Vertical } from "@leads/core";
 import type { Json } from "@leads/db/types.js";
 import type { ScoreRule } from "../scoring/score.js";
 import { rescoreLead } from "./rescore-lead.js";
-import { VERTICAL_LEAD_TITLE, normalizeDomain, freshnessFromDate } from "./shared.js";
-
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase();
-}
+import {
+  VERTICAL_LEAD_TITLE,
+  freshnessFromDate,
+  groupSignalsByCompany,
+  normalizeDomain,
+} from "./shared.js";
 
 /**
  * Groups raw signals by (vertical, company identity), upserts one company +
@@ -23,14 +24,7 @@ export async function dedupeAndUpsert(
 ): Promise<{ leadId: string; companyName: string; score: number }[]> {
   const supabase = createServiceRoleClient();
 
-  const groups = new Map<string, RawSignal[]>();
-  for (const signal of rawSignals) {
-    const domain = normalizeDomain(signal.website);
-    const identity = domain ?? normalizeName(signal.projectName);
-    const key = `${signal.vertical}::${identity}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(signal);
-  }
+  const groups = groupSignalsByCompany(rawSignals);
 
   const results: { leadId: string; companyName: string; score: number }[] = [];
 

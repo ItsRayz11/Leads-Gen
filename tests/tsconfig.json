@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "vitest/globals"],
+    "baseUrl": "..",
+    "paths": {
+      "@leads/core": ["packages/core/types.ts"],
+      "@leads/db": ["packages/db/client.ts"],
+      "@leads/db/types.js": ["packages/db/types.ts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

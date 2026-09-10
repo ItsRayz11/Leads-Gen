@@ -1,5 +1,6 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, roleKeywordsFrom } from "../job-boards/shared.js";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 // twitterapi.io (third-party, paid) advanced search — NOT free. Requires
 // TWITTERAPI_IO_KEY. See https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search
@@ -63,6 +64,8 @@ export const twitterHiringSignalsConnector: SourceConnector = {
       console.warn("[twitter-hiring-signals] TWITTERAPI_IO_KEY not set, skipping connector.");
       return [];
     }
+
+    if (!(await isProviderEnabled("twitterapi_io"))) return [];
 
     const keywords = roleKeywordsFrom(config);
     const query = buildQuery(keywords);

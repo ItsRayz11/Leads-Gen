@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 const BASE_URL = "https://api.hunter.io/v2/domain-search";
 
@@ -42,6 +43,8 @@ export async function enrichContactsViaHunter(domain: string): Promise<RawContac
     console.warn("[hunter] HUNTER_API_KEY not set, skipping enrichment.");
     return [];
   }
+
+  if (!(await isProviderEnabled("hunter"))) return [];
 
   const params = new URLSearchParams({ domain, api_key: apiKey, limit: "20" });
   const res = await fetch(`${BASE_URL}?${params.toString()}`);

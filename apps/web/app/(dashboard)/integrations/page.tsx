@@ -19,19 +19,25 @@ const AI_PROVIDERS = [
   { key: "openrouter", name: "OpenRouter" },
 ] as const;
 
-function ProviderRow({
+/**
+ * A lead/data provider only runs when its key is in the environment AND its
+ * toggle is on, so the badge reports that combination rather than either half
+ * on its own. A missing row counts as enabled, matching the worker-side
+ * default in workers/provider-gate.ts.
+ */
+function LeadDataProviderRow({
   name,
   providerKey,
-  category,
   configured,
   connection,
 }: {
   name: string;
   providerKey: string;
-  category: "lead_data" | "ai";
   configured: boolean;
   connection: ProviderConnection | undefined;
 }) {
+  const enabled = connection?.enabled ?? true;
+
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-3 last:border-0">
       <div>
@@ -39,17 +45,48 @@ function ProviderRow({
         <p className="text-xs text-muted-foreground">{providerKey}</p>
       </div>
       <div className="flex items-center gap-4">
-        <Badge variant={configured ? "success" : "outline"}>
-          {configured ? "Configured in environment" : "Not configured"}
-        </Badge>
+        {!configured ? (
+          <Badge variant="outline">No API key in environment</Badge>
+        ) : enabled ? (
+          <Badge variant="success">Active — connectors will use it</Badge>
+        ) : (
+          <Badge variant="warning">Switched off — connectors skip it</Badge>
+        )}
         <ProviderToggle
           providerName={providerKey}
-          category={category}
-          enabled={connection?.enabled ?? false}
+          category="lead_data"
+          enabled={enabled}
           priority={connection?.priority ?? 0}
           disabled={!configured}
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Read-only on purpose. Which AI provider handles which task is chosen per
+ * use case in Settings (ai_provider_settings); a switch here would be a
+ * second place to disable the same thing.
+ */
+function AiProviderRow({
+  name,
+  providerKey,
+  configured,
+}: {
+  name: string;
+  providerKey: string;
+  configured: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-border px-4 py-3 last:border-0">
+      <div>
+        <p className="text-sm font-medium">{name}</p>
+        <p className="text-xs text-muted-foreground">{providerKey}</p>
+      </div>
+      <Badge variant={configured ? "success" : "outline"}>
+        {configured ? "Key present in environment" : "No API key in environment"}
+      </Badge>
     </div>
   );
 }
@@ -75,14 +112,17 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Lead / Data Providers</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Switching one off stops the connectors and enrichment steps from calling it on the next
+            worker run, which is how you cap spend on the paid ones without pulling the key.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           {LEAD_DATA_PROVIDERS.map((p) => (
-            <ProviderRow
+            <LeadDataProviderRow
               key={p.key}
               name={p.name}
               providerKey={p.key}
-              category="lead_data"
               configured={envConfigured[p.key]}
               connection={byName.get(p.key)}
             />
@@ -93,16 +133,18 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>AI Providers</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Key status only. Pick which provider and model handles each task — lead research,
+            scoring, outreach drafting — in Settings.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           {AI_PROVIDERS.map((p) => (
-            <ProviderRow
+            <AiProviderRow
               key={p.key}
               name={p.name}
               providerKey={p.key}
-              category="ai"
               configured={envConfigured[p.key]}
-              connection={byName.get(p.key)}
             />
           ))}
         </CardContent>

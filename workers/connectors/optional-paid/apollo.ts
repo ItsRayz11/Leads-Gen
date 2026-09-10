@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 const SEARCH_URL = "https://api.apollo.io/api/v1/mixed_people/api_search";
 const MATCH_URL = "https://api.apollo.io/api/v1/people/match";
@@ -61,6 +62,8 @@ export async function enrichContactViaApollo(
     console.warn("[apollo] APOLLO_API_KEY not set, skipping enrichment.");
     return null;
   }
+
+  if (!(await isProviderEnabled("apollo"))) return null;
 
   const searchResult = await apolloRequest<ApolloSearchResponse>(SEARCH_URL, apiKey, {
     q_organization_domains_list: [domain],

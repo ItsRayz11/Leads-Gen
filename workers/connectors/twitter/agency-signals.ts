@@ -1,5 +1,6 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal } from "../job-boards/shared.js";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 const BASE_URL = "https://api.twitterapi.io/twitter/tweet/advanced_search";
 
@@ -64,6 +65,8 @@ export const twitterAgencySignalsConnector: SourceConnector = {
       console.warn("[twitter-agency-signals] TWITTERAPI_IO_KEY not set, skipping connector.");
       return [];
     }
+
+    if (!(await isProviderEnabled("twitterapi_io"))) return [];
 
     const tweets = await searchTweets(buildQuery(), apiKey);
 

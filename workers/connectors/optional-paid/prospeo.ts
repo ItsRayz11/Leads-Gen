@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 const DOMAIN_SEARCH_URL = "https://api.prospeo.io/domain-search";
 
@@ -68,6 +69,8 @@ export async function enrichContactsViaProspeo(domain: string): Promise<RawConta
     console.warn("[prospeo] PROSPEO_API_KEY not set, skipping enrichment.");
     return [];
   }
+
+  if (!(await isProviderEnabled("prospeo"))) return [];
 
   const res = await fetch(DOMAIN_SEARCH_URL, {
     method: "POST",

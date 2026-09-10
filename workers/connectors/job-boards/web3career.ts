@@ -1,5 +1,6 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { isProviderEnabled } from "../../provider-gate.js";
 
 // Confirmed live endpoint (not officially documented in public docs, taken
 // from the open-source web3-jobs MCP server's implementation). Free token:
@@ -28,6 +29,8 @@ export const web3CareerConnector: SourceConnector = {
       console.warn("[web3career] WEB3_CAREER_API_TOKEN not set, skipping connector.");
       return [];
     }
+
+    if (!(await isProviderEnabled("web3_career"))) return [];
 
     const keywords = roleKeywordsFrom(config);
     const params = new URLSearchParams({ token, limit: "100" });

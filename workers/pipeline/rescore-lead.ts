@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@leads/db/types.js";
 import type { Vertical } from "@leads/core";
-import { scoreLead, type LeadDraft, type ScoreResult, type ScoreRule } from "../scoring/score.js";
+import {
+  scoreLead,
+  type DimensionWeights,
+  type LeadDraft,
+  type ScoreResult,
+  type ScoreRule,
+  type TierThreshold,
+} from "../scoring/score.js";
 
 /**
  * Rebuilds a lead's draft from lead_signals + evidence + contacts and
@@ -25,10 +32,11 @@ export async function rescoreLead(
   vertical: Vertical,
   rules: ScoreRule[]
 ): Promise<{ score: number; tier: string }> {
-  const [{ data: signalRows }, { data: evidenceRows }, { data: lead }] = await Promise.all([
+  const [{ data: signalRows }, { data: evidenceRows }, { data: lead }, { data: config }] = await Promise.all([
     supabase.from("lead_signals").select("*").eq("lead_id", leadId),
     supabase.from("evidence").select("id, url").eq("lead_id", leadId),
     supabase.from("leads").select("company_id").eq("id", leadId).single(),
+    supabase.from("scoring_config").select("dimension_weights, tier_thresholds").eq("vertical", vertical).maybeSingle(),
   ]);
 
   const evidenceUrlById = new Map(
@@ -61,7 +69,12 @@ export async function rescoreLead(
     }),
   };
 
-  const result = scoreLead(draft, rules);
+  // A missing row (a fresh database that hasn't run the seed migration, or a
+  // vertical with no override yet) falls back to scoreLead's own defaults —
+  // same behavior as before this table existed.
+  const weights = config?.dimension_weights as DimensionWeights | undefined;
+  const tierThresholds = config?.tier_thresholds as TierThreshold[] | undefined;
+  const result = weights && tierThresholds ? scoreLead(draft, rules, weights, tierThresholds) : scoreLead(draft, rules);
 
   await supabase.from("leads").update({ score: result.score, tier: result.tier }).eq("id", leadId);
   await supabase.from("lead_scores").insert({

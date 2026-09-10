@@ -2,6 +2,7 @@ import { listSearchConfigs } from "../../../lib/data/discovery";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { SavedSearchForm } from "../../../components/saved-search-form";
+import { DiscoveryRunPanel } from "../../../components/discovery-run-panel";
 
 export default async function DiscoveryPage() {
   const configs = await listSearchConfigs();
@@ -12,9 +13,18 @@ export default async function DiscoveryPage() {
         <h1 className="text-xl font-semibold">Lead Discovery</h1>
         <p className="text-sm text-muted-foreground">
           Describe what you want in plain English; it gets interpreted into structured filters you can review and
-          save. Actual discovery runs outside the browser — see the note below.
+          save. Run a vertical's connectors right now below, or let the scheduled GitHub Action handle it.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Run discovery now</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <DiscoveryRunPanel />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -80,13 +90,11 @@ export default async function DiscoveryPage() {
         <CardContent className="pt-4 text-sm text-muted-foreground">
           A saved search becomes a config the pipeline reads once you press <span className="text-foreground">To
           discovery</span> on it in{" "}
-          <span className="text-foreground">Saved Searches</span>. Running discovery itself executes{" "}
+          <span className="text-foreground">Saved Searches</span>. The buttons above trigger the same code as{" "}
           <code className="text-foreground">npm run run:vertical1</code>,{" "}
           <code className="text-foreground">npm run run:vertical2</code>, or{" "}
-          <code className="text-foreground">npm run run:vertical3</code> from the repo root — or the scheduled
-          GitHub Action — which write directly into this same database. Results simply appear in All Leads /
-          Pipeline once a run completes. There is no in-browser "run now" button; this page does not perform live
-          searches.
+          <code className="text-foreground">npm run run:vertical3</code> — or the scheduled GitHub Action —
+          writing directly into this same database. Results appear in All Leads / Pipeline once a run completes.
         </CardContent>
       </Card>
     </div>

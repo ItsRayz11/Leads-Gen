@@ -6,31 +6,17 @@ import {
 } from "../../../lib/data/analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
+import { BarChart } from "../../../components/charts/bar-chart";
+import { LineChart } from "../../../components/charts/line-chart";
 
 function pct(value: number | null): string {
   if (value === null) return "—";
   return `${Math.round(value * 1000) / 10}%`;
 }
 
-function BarList({ buckets, total }: { buckets: CountBucket[]; total: number }) {
-  if (buckets.length === 0) {
-    return <p className="text-sm text-muted-foreground">No data yet.</p>;
-  }
+function CountBarChart({ buckets }: { buckets: CountBucket[] }) {
   return (
-    <div className="space-y-2">
-      {buckets.map((b) => {
-        const width = total > 0 ? Math.round((b.count / total) * 100) : 0;
-        return (
-          <div key={b.label} className="flex items-center gap-2 text-sm">
-            <span className="w-32 shrink-0 truncate text-muted-foreground">{b.label.replace(/_/g, " ")}</span>
-            <div className="h-2 flex-1 rounded-full bg-primary/20">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${width}%` }} />
-            </div>
-            <span className="w-10 shrink-0 text-right text-muted-foreground">{b.count}</span>
-          </div>
-        );
-      })}
-    </div>
+    <BarChart data={buckets.map((b) => ({ label: b.label, value: b.count }))} formatLabel={(l) => l.replace(/_/g, " ")} />
   );
 }
 
@@ -106,6 +92,10 @@ function SegmentTable({ rows, firstColumn }: { rows: SegmentWinRate[]; firstColu
   );
 }
 
+function formatWeekLabel(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export default async function AnalyticsPage() {
   const analytics = await getAnalytics();
   const { followUp, winLoss, sources } = analytics;
@@ -116,6 +106,17 @@ export default async function AnalyticsPage() {
         <h1 className="text-xl font-semibold">Analytics</h1>
         <p className="text-sm text-muted-foreground">{analytics.totalLeads} total leads</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>New leads per week</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <LineChart
+            data={analytics.leadsOverTime.map((p) => ({ label: formatWeekLabel(p.periodStart), value: p.count }))}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -191,7 +192,7 @@ export default async function AnalyticsPage() {
 
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Why leads were lost</p>
-            <BarList buckets={winLoss.lossReasons} total={winLoss.lost} />
+            <CountBarChart buckets={winLoss.lossReasons} />
             <p className="text-xs text-muted-foreground">
               Taken from the closing status, which is as specific as the schema records — there is no separate
               free-text loss reason.
@@ -252,7 +253,7 @@ export default async function AnalyticsPage() {
             <CardTitle>By status</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarList buckets={analytics.byStatus} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.byStatus} />
           </CardContent>
         </Card>
 
@@ -261,7 +262,7 @@ export default async function AnalyticsPage() {
             <CardTitle>By tier</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarList buckets={analytics.byTier} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.byTier} />
           </CardContent>
         </Card>
 
@@ -270,7 +271,7 @@ export default async function AnalyticsPage() {
             <CardTitle>By vertical</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarList buckets={analytics.byVertical} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.byVertical} />
           </CardContent>
         </Card>
 
@@ -279,7 +280,7 @@ export default async function AnalyticsPage() {
             <CardTitle>By verification status</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarList buckets={analytics.byVerification} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.byVerification} />
           </CardContent>
         </Card>
 
@@ -288,7 +289,7 @@ export default async function AnalyticsPage() {
             <CardTitle>Top countries</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarList buckets={analytics.byCountry} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.byCountry} />
           </CardContent>
         </Card>
 
@@ -300,7 +301,7 @@ export default async function AnalyticsPage() {
             <p className="mb-2 text-xs text-muted-foreground">
               A snapshot of how many leads currently sit in each stage — not a cohort conversion funnel over time.
             </p>
-            <BarList buckets={analytics.funnel} total={analytics.totalLeads} />
+            <CountBarChart buckets={analytics.funnel} />
           </CardContent>
         </Card>
       </div>

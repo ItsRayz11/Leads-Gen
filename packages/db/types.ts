@@ -905,6 +905,27 @@ export interface Database {
         };
         Relationships: [{ foreignKeyName: 'notifications_related_lead_id_fkey'; columns: ['related_lead_id']; isOneToOne: false; referencedRelation: 'leads'; referencedColumns: ['id'] }];
       };
+      scoring_config: {
+        Row: {
+          vertical: string;
+          dimension_weights: Json;
+          tier_thresholds: Json;
+          updated_at: string;
+        };
+        Insert: {
+          vertical: string;
+          dimension_weights: Json;
+          tier_thresholds: Json;
+          updated_at?: string;
+        };
+        Update: {
+          vertical?: string;
+          dimension_weights?: Json;
+          tier_thresholds?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -940,3 +961,4 @@ export type SearchResult = Database['public']['Tables']['search_results']['Row']
 export type ProviderConnection = Database['public']['Tables']['provider_connections']['Row'];
 export type AiProviderSetting = Database['public']['Tables']['ai_provider_settings']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type ScoringConfig = Database['public']['Tables']['scoring_config']['Row'];

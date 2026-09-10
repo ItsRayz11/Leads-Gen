@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@leads/db";
 import type { Vertical } from "@leads/core";
 import { enrichContactsViaHunter } from "../connectors/optional-paid/hunter.js";
 import { enrichContactsViaProspeo } from "../connectors/optional-paid/prospeo.js";
+import { enrichContactsViaPdl } from "../connectors/optional-paid/people-data-labs.js";
 import { enrichContactViaApollo } from "../connectors/optional-paid/apollo.js";
 import { rescoreLead } from "./rescore-lead.js";
 import { RULES_BY_VERTICAL } from "../scoring/rules-by-vertical.js";
@@ -14,9 +15,9 @@ import { normalizeDomain } from "./shared.js";
  * something with a real person to reach out to.
  *
  * Providers run cheapest-first and stop at the first hit: Hunter (has a free
- * tier), then Prospeo, then Apollo last because its match/reveal call spends
- * a credit per lead. Each self-disables when its key is unset, so the chain
- * just gets shorter rather than erroring.
+ * tier), then Prospeo, then PDL, then Apollo last because its match/reveal
+ * call spends a credit per lead. Each self-disables when its key is unset,
+ * so the chain just gets shorter rather than erroring.
  */
 export async function enrichMissingContacts(vertical?: Vertical): Promise<number> {
   const supabase = createServiceRoleClient();
@@ -39,6 +40,7 @@ export async function enrichMissingContacts(vertical?: Vertical): Promise<number
 
     let contacts = await enrichContactsViaHunter(domain);
     if (contacts.length === 0) contacts = await enrichContactsViaProspeo(domain);
+    if (contacts.length === 0) contacts = await enrichContactsViaPdl(domain);
     if (contacts.length === 0) {
       const apolloContact = await enrichContactViaApollo(domain);
       if (apolloContact) contacts = [apolloContact];

@@ -1,11 +1,9 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { repoPath } from "../../repo-root.js";
 
-const CONFIG_PATH = fileURLToPath(
-  new URL("../../../config/target-companies/ashby.json", import.meta.url)
-);
+const CONFIG_PATH = repoPath("config/target-companies/ashby.json");
 const boardNamesConfig: { boardNames: string[] } = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
 
 interface AshbyJob {

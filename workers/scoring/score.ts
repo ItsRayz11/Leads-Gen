@@ -102,12 +102,22 @@ export const VERTICAL_DIMENSION_WEIGHTS: Record<Vertical, DimensionWeights> = {
   },
 };
 
+export interface TierThreshold {
+  tier: Tier;
+  min: number;
+}
+
 /**
- * Score-to-tier cutoffs, highest first. Now read against a normalized
- * weighted average, so 85 means "85% of the strength this vertical can
- * measure" rather than "85 points happened to accumulate".
+ * Score-to-tier cutoffs, highest first. Read against a normalized weighted
+ * average, so 85 means "85% of the strength this vertical can measure"
+ * rather than "85 points happened to accumulate".
+ *
+ * This is the default; the Settings page can override it per vertical via
+ * the `scoring_config` table (see `rescoreLead`'s caller), which is why
+ * `scoreLead` takes it as a parameter instead of reading this constant
+ * directly.
  */
-const TIER_THRESHOLDS: { tier: Tier; min: number }[] = [
+export const DEFAULT_TIER_THRESHOLDS: TierThreshold[] = [
   { tier: "A+", min: 85 },
   { tier: "A", min: 70 },
   { tier: "B", min: 50 },
@@ -141,15 +151,20 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function tierForScore(score: number): Tier {
-  return TIER_THRESHOLDS.find((t) => score >= t.min)!.tier;
+function tierForScore(score: number, thresholds: TierThreshold[]): Tier {
+  return (thresholds.find((t) => score >= t.min) ?? thresholds[thresholds.length - 1]).tier;
 }
 
 function worseOf(a: Tier, b: Tier): Tier {
   return TIER_ORDER.indexOf(a) >= TIER_ORDER.indexOf(b) ? a : b;
 }
 
-export function scoreLead(draft: LeadDraft, rules: ScoreRule[]): ScoreResult {
+export function scoreLead(
+  draft: LeadDraft,
+  rules: ScoreRule[],
+  weights: DimensionWeights = VERTICAL_DIMENSION_WEIGHTS[draft.vertical] ?? {},
+  tierThresholds: TierThreshold[] = DEFAULT_TIER_THRESHOLDS
+): ScoreResult {
   const matchedRules: MatchedRule[] = [];
   const earned = {} as Record<ScoreDimension, number>;
   const available = {} as Record<ScoreDimension, number>;
@@ -183,8 +198,6 @@ export function scoreLead(draft: LeadDraft, rules: ScoreRule[]): ScoreResult {
       available[dimension] > 0 ? clampPercent((100 * earned[dimension]) / available[dimension]) : null;
   }
 
-  const weights = VERTICAL_DIMENSION_WEIGHTS[draft.vertical] ?? {};
-
   // Blended over the dimensions this vertical both scores and weights, so a
   // vertical that can't measure something isn't penalized for it.
   let weightedTotal = 0;
@@ -199,7 +212,7 @@ export function scoreLead(draft: LeadDraft, rules: ScoreRule[]): ScoreResult {
 
   const score = weightSum > 0 ? clampPercent(weightedTotal / weightSum) : 0;
 
-  let tier = tierForScore(score);
+  let tier = tierForScore(score, tierThresholds);
   let tierLimitedBy: string | null = null;
   for (const gate of TIER_GATES) {
     // A gate only applies where the vertical actually measures that

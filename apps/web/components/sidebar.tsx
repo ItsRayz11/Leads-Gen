@@ -17,6 +17,7 @@ import {
   StickyNote,
   BookmarkCheck,
   BarChart3,
+  Bell,
   Upload,
   Download,
   Plug,
@@ -24,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
-const NAV = [
+export const NAV = [
   { section: "Overview", items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }] },
   {
     section: "Pipeline",
@@ -50,6 +51,7 @@ const NAV = [
       { href: "/outreach", label: "Outreach", icon: Send },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/notes", label: "Notes", icon: StickyNote },
+      { href: "/notifications", label: "Notifications", icon: Bell },
     ],
   },
   {

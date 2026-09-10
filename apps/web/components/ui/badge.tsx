@@ -88,3 +88,14 @@ export function VerificationBadge({ status }: { status: string | null }) {
   const value = status ?? "unverified";
   return <Badge variant={VERIFICATION_VARIANT[value] ?? "outline"}>{value.replace(/_/g, " ")}</Badge>;
 }
+
+const NOTIFICATION_TYPE_VARIANT: Record<string, BadgeProps["variant"]> = {
+  follow_up_due: "warning",
+  follow_up_overdue: "destructive",
+  needs_verification: "warning",
+  high_intent_lead: "success",
+};
+
+export function NotificationTypeBadge({ type }: { type: string }) {
+  return <Badge variant={NOTIFICATION_TYPE_VARIANT[type] ?? "outline"}>{type.replace(/_/g, " ")}</Badge>;
+}

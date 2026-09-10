@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
   "scripts": {
     "import:legacy": "tsx import-export/import-legacy-csv.ts",
     "export:csv": "tsx import-export/export-csv.ts",
@@ -10,7 +14,8 @@
     "run:vertical3": "tsx pipeline/run-vertical3-card-affiliate.ts",
     "run:vertical2": "tsx pipeline/run-vertical2-general.ts",
     "enrich:contacts": "tsx pipeline/enrich-contacts.ts",
-    "rescore:all": "tsx pipeline/rescore-all.ts"
+    "rescore:all": "tsx pipeline/rescore-all.ts",
+    "generate:notifications": "tsx pipeline/generate-notifications.ts"
   },
   "dependencies": {
     "@leads/core": "*",

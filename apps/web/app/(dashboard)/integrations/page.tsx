@@ -10,6 +10,7 @@ const LEAD_DATA_PROVIDERS = [
   { key: "hunter", name: "Hunter" },
   { key: "apollo", name: "Apollo" },
   { key: "prospeo", name: "Prospeo" },
+  { key: "pdl", name: "People Data Labs" },
 ] as const;
 
 const AI_PROVIDERS = [

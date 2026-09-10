@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { createServiceRoleClient } from "@leads/db";
 import type { SearchConfig, Vertical } from "@leads/core";
+import { repoPath } from "../repo-root.js";
 
 const FALLBACK_CONFIG_PATHS: Record<Vertical, string | null> = {
   hiring: null,
   card_affiliate: null,
-  general: fileURLToPath(new URL("../../config/search-configs/vertical2.json", import.meta.url)),
+  general: repoPath("config/search-configs/vertical2.json"),
 };
 
 /**

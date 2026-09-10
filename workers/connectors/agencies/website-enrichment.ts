@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { extractSiteSignals, stripHtml } from "./shared.js";
+import { repoPath } from "../../repo-root.js";
 
-const CONFIG_PATH = fileURLToPath(new URL("../../../config/target-companies/agencies.json", import.meta.url));
+const CONFIG_PATH = repoPath("config/target-companies/agencies.json");
 
 interface AgencySeed {
   name: string;

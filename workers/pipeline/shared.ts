@@ -1,5 +1,22 @@
+import { fileURLToPath } from "node:url";
 import type { RawSignal, Vertical } from "@leads/core";
 import type { Freshness } from "@leads/db/types.js";
+
+/**
+ * True when this module was invoked directly as a CLI script (`tsx foo.ts`),
+ * false when it was merely imported as a library (e.g. by the Next.js API
+ * route that triggers discovery in-browser). Bundlers that shim
+ * `import.meta.url` for a Node server bundle (webpack, for the API route)
+ * can hand `fileURLToPath` a value it rejects, so this fails safe rather than
+ * crashing the importer.
+ */
+export function isRunAsScript(importMetaUrl: string): boolean {
+  try {
+    return process.argv[1] === fileURLToPath(importMetaUrl);
+  } catch {
+    return false;
+  }
+}
 
 export const VERTICAL_LEAD_TITLE: Record<Vertical, string> = {
   hiring: "Hiring signal opportunity",

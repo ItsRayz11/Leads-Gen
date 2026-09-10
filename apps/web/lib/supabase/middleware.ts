@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@leads/db/types.js";
+import { resolveAuthRedirect } from "./auth-redirect";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,17 +29,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
-
-  if (!user && !isAuthRoute) {
+  const redirectTo = resolveAuthRedirect(request.nextUrl.pathname, !!user);
+  if (redirectTo) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = redirectTo;
     return NextResponse.redirect(url);
   }
 

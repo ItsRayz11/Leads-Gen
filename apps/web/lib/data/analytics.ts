@@ -57,6 +57,12 @@ export interface SourceStat {
   winRate: number | null;
 }
 
+export interface TimeSeriesPoint {
+  /** ISO date (yyyy-mm-dd) of the Monday that starts this week. */
+  periodStart: string;
+  count: number;
+}
+
 export interface Analytics {
   totalLeads: number;
   byStatus: CountBucket[];
@@ -68,6 +74,7 @@ export interface Analytics {
   followUp: FollowUpPerformance;
   winLoss: WinLoss;
   sources: SourceStat[];
+  leadsOverTime: TimeSeriesPoint[];
 }
 
 const FUNNEL_STATUSES = ["new", "qualified", "contacted", "replied", "meeting", "negotiation", "won"];
@@ -345,6 +352,34 @@ function computeSources(
     .sort((a, b) => b.won - a.won || b.replied - a.replied || b.leads - a.leads);
 }
 
+function startOfWeek(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0 = Sunday .. 6 = Saturday
+  const daysSinceMonday = (day + 6) % 7;
+  d.setDate(d.getDate() - daysSinceMonday);
+  return d;
+}
+
+/** New leads per ISO week, for the last `weeks` weeks (default 12), oldest first. */
+function computeLeadsOverTime(leads: LeadRow[], weeks = 12): TimeSeriesPoint[] {
+  const currentWeekStart = startOfWeek(new Date());
+  const weekKeys: string[] = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = new Date(currentWeekStart);
+    start.setDate(start.getDate() - i * 7);
+    weekKeys.push(start.toISOString().slice(0, 10));
+  }
+
+  const counts = new Map<string, number>(weekKeys.map((key) => [key, 0]));
+  for (const lead of leads) {
+    const key = startOfWeek(new Date(lead.created_at)).toISOString().slice(0, 10);
+    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return weekKeys.map((key) => ({ periodStart: key, count: counts.get(key) ?? 0 }));
+}
+
 export async function getAnalytics(): Promise<Analytics> {
   const supabase = await createClient();
 
@@ -397,5 +432,6 @@ export async function getAnalytics(): Promise<Analytics> {
     followUp: computeFollowUp(leads, outreach),
     winLoss: computeWinLoss(leads, wonAt),
     sources: computeSources(leads, evidence),
+    leadsOverTime: computeLeadsOverTime(leads),
   };
 }

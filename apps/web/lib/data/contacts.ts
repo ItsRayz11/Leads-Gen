@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { rangeFor, type PageOptions, type PagedResult } from "../paging";
 import type { VerificationStatus } from "@leads/db/types.js";
 
 export interface ContactFilters {
@@ -23,21 +24,28 @@ const CONTACT_SELECT = `
   company:companies ( id, name )
 `;
 
-export async function listContacts(filters: ContactFilters = {}): Promise<ContactListRow[]> {
+export async function listContacts(
+  filters: ContactFilters = {},
+  options: PageOptions = {}
+): Promise<PagedResult<ContactListRow>> {
   const supabase = await createClient();
+  const { from, to } = rangeFor(options);
+
   let query = supabase
     .from("contacts")
-    .select(CONTACT_SELECT)
+    .select(CONTACT_SELECT, { count: "exact" })
     .order("updated_at", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
   if (filters.verificationStatus)
     query = query.eq("verification_status", filters.verificationStatus as VerificationStatus);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as ContactListRow[];
+  const rows = (data ?? []) as unknown as ContactListRow[];
+  return { rows, total: count ?? rows.length };
 }
 
 export async function getContactDetail(id: string) {

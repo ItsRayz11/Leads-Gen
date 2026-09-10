@@ -2,15 +2,27 @@ import Link from "next/link";
 import { listEvidence } from "../../../lib/data/evidence";
 import { FreshnessBadge } from "../../../components/ui/badge";
 import { formatDate } from "../../../lib/utils";
+import { Pager } from "../../../components/ui/pager";
+import { queryString, resolvePage, resolvePerPage, single, type SearchParams } from "../../../lib/paging";
 
-export default async function EvidencePage() {
-  const evidence = await listEvidence();
+export default async function EvidencePage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const page = resolvePage(single(params, "page"));
+  const perPage = resolvePerPage(single(params, "perPage"));
+
+  const { rows: evidence, total } = await listEvidence({ page, perPage });
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Evidence</h1>
-        <p className="text-sm text-muted-foreground">{evidence.length} evidence records across all leads</p>
+        <p className="text-sm text-muted-foreground">
+          {total} evidence record{total === 1 ? "" : "s"} across all leads
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -73,6 +85,16 @@ export default async function EvidencePage() {
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/evidence"
+        searchParams={queryString(params)}
+        page={page}
+        perPage={perPage}
+        total={total}
+        rowsOnPage={evidence.length}
+        noun={{ one: "evidence record", many: "evidence records" }}
+      />
     </div>
   );
 }

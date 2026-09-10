@@ -78,11 +78,15 @@ export const LEAD_COLUMNS: LeadColumn[] = [
 export const DEFAULT_SORT_KEY = "score";
 export const DEFAULT_SORT_DIR: SortDirection = "desc";
 
-export const PAGE_SIZES = [25, 50, 100, 200] as const;
-export const DEFAULT_PAGE_SIZE = 50;
-
-/** Ceiling on an unpaginated read (saved-search runs), so one query can't pull the whole table. */
-export const MAX_UNPAGED_ROWS = 5000;
+// Paging is shared with every other list page; re-exported here so the
+// existing /leads imports keep working from one place.
+export {
+  DEFAULT_PAGE_SIZE,
+  MAX_UNPAGED_ROWS,
+  PAGE_SIZES,
+  resolvePage,
+  resolvePerPage,
+} from "./paging";
 
 const COLUMN_BY_KEY = new Map(LEAD_COLUMNS.map((column) => [column.key, column]));
 
@@ -106,16 +110,6 @@ export function resolveSort(key: string | undefined): { key: string; column: str
 
 export function resolveDir(dir: string | undefined, fallback: SortDirection): SortDirection {
   return dir === "asc" || dir === "desc" ? dir : fallback;
-}
-
-export function resolvePerPage(value: string | undefined): number {
-  const parsed = value ? parseInt(value, 10) : NaN;
-  return (PAGE_SIZES as readonly number[]).includes(parsed) ? parsed : DEFAULT_PAGE_SIZE;
-}
-
-export function resolvePage(value: string | undefined): number {
-  const parsed = value ? parseInt(value, 10) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
 const DEFAULT_VISIBLE = LEAD_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key);

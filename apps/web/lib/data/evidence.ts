@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { rangeFor, type PageOptions, type PagedResult } from "../paging";
 
 export interface EvidenceListRow {
   id: string;
@@ -21,14 +22,20 @@ const EVIDENCE_SELECT = `
   lead:leads ( id, title, company:companies ( name ) )
 `;
 
-export async function listEvidence(): Promise<EvidenceListRow[]> {
+export async function listEvidence(
+  options: PageOptions = {}
+): Promise<PagedResult<EvidenceListRow>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { from, to } = rangeFor(options);
+
+  const { data, error, count } = await supabase
     .from("evidence")
-    .select(EVIDENCE_SELECT)
+    .select(EVIDENCE_SELECT, { count: "exact" })
     .order("discovered_at", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (error) throw error;
-  return (data ?? []) as unknown as EvidenceListRow[];
+  const rows = (data ?? []) as unknown as EvidenceListRow[];
+  return { rows, total: count ?? rows.length };
 }

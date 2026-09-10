@@ -2,20 +2,32 @@ import Link from "next/link";
 import { listOutreach } from "../../../lib/data/outreach";
 import { formatDate, formatDateTime } from "../../../lib/utils";
 import { OutreachResultControl } from "../../../components/lead/outreach-result";
+import { Pager } from "../../../components/ui/pager";
+import { queryString, resolvePage, resolvePerPage, single, type SearchParams } from "../../../lib/paging";
 
 function truncate(text: string | null, length: number): string {
   if (!text) return "—";
   return text.length > length ? `${text.slice(0, length)}…` : text;
 }
 
-export default async function OutreachPage() {
-  const outreach = await listOutreach();
+export default async function OutreachPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const page = resolvePage(single(params, "page"));
+  const perPage = resolvePerPage(single(params, "perPage"));
+
+  const { rows: outreach, total } = await listOutreach({ page, perPage });
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Outreach</h1>
-        <p className="text-sm text-muted-foreground">{outreach.length} outreach records across all leads</p>
+        <p className="text-sm text-muted-foreground">
+          {total} outreach record{total === 1 ? "" : "s"} across all leads
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -63,6 +75,16 @@ export default async function OutreachPage() {
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/outreach"
+        searchParams={queryString(params)}
+        page={page}
+        perPage={perPage}
+        total={total}
+        rowsOnPage={outreach.length}
+        noun={{ one: "outreach record", many: "outreach records" }}
+      />
     </div>
   );
 }

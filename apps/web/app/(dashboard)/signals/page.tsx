@@ -2,20 +2,29 @@ import Link from "next/link";
 import { listSignals } from "../../../lib/data/signals";
 import { Badge, FreshnessBadge } from "../../../components/ui/badge";
 import { formatDate } from "../../../lib/utils";
+import { Pager } from "../../../components/ui/pager";
+import { queryString, resolvePage, resolvePerPage, single, type SearchParams } from "../../../lib/paging";
 
 export default async function SignalsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ signalType?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const signals = await listSignals({ signalType: params.signalType });
+  const signalType = single(params, "signalType");
+  const page = resolvePage(single(params, "page"));
+  const perPage = resolvePerPage(single(params, "perPage"));
+
+  const { rows: signals, total } = await listSignals({ signalType }, { page, perPage });
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Signals</h1>
-        <p className="text-sm text-muted-foreground">{signals.length} buying signals across all leads</p>
+        <p className="text-sm text-muted-foreground">
+          {total} buying signal{total === 1 ? "" : "s"}
+          {signalType ? ` of type "${signalType}"` : " across all leads"}
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -35,7 +44,7 @@ export default async function SignalsPage({
             {signals.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
-                  No signals recorded yet.
+                  {signalType ? "No signals of that type." : "No signals recorded yet."}
                 </td>
               </tr>
             ) : (
@@ -65,6 +74,16 @@ export default async function SignalsPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/signals"
+        searchParams={queryString(params)}
+        page={page}
+        perPage={perPage}
+        total={total}
+        rowsOnPage={signals.length}
+        noun={{ one: "signal", many: "signals" }}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { rangeFor, type PageOptions, type PagedResult } from "../paging";
 
 export interface SignalFilters {
   signalType?: string;
@@ -26,17 +27,24 @@ const SIGNAL_SELECT = `
   lead:leads ( id, title, company:companies ( name ) )
 `;
 
-export async function listSignals(filters: SignalFilters = {}): Promise<SignalListRow[]> {
+export async function listSignals(
+  filters: SignalFilters = {},
+  options: PageOptions = {}
+): Promise<PagedResult<SignalListRow>> {
   const supabase = await createClient();
+  const { from, to } = rangeFor(options);
+
   let query = supabase
     .from("lead_signals")
-    .select(SIGNAL_SELECT)
+    .select(SIGNAL_SELECT, { count: "exact" })
     .order("signal_date", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (filters.signalType) query = query.eq("signal_type", filters.signalType);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as SignalListRow[];
+  const rows = (data ?? []) as unknown as SignalListRow[];
+  return { rows, total: count ?? rows.length };
 }

@@ -4,26 +4,37 @@ import { Badge } from "../../../components/ui/badge";
 import { formatDate } from "../../../lib/utils";
 import { Input } from "../../../components/ui/input";
 import { Button } from "../../../components/ui/button";
+import { Pager } from "../../../components/ui/pager";
+import { queryString, resolvePage, resolvePerPage, single, type SearchParams } from "../../../lib/paging";
 
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const contacts = await listContacts(params);
+  const q = single(params, "q");
+  const page = resolvePage(single(params, "page"));
+  const perPage = resolvePerPage(single(params, "perPage"));
+
+  const { rows: contacts, total } = await listContacts(
+    { q, verificationStatus: single(params, "verificationStatus") },
+    { page, perPage }
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Contacts</h1>
-          <p className="text-sm text-muted-foreground">{contacts.length} contacts</p>
+          <p className="text-sm text-muted-foreground">
+            {total} contact{total === 1 ? "" : "s"}
+          </p>
         </div>
       </div>
 
       <form className="flex gap-2">
-        <Input name="q" defaultValue={params.q ?? ""} placeholder="Search by name…" className="max-w-xs" />
+        <Input name="q" defaultValue={q ?? ""} placeholder="Search by name…" className="max-w-xs" />
         <Button type="submit" variant="secondary" size="sm">
           Search
         </Button>
@@ -45,7 +56,9 @@ export default async function ContactsPage({
             {contacts.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                  No contacts yet. Run a discovery pipeline or import your legacy CSV.
+                  {q
+                    ? "No contacts match that search."
+                    : "No contacts yet. Run a discovery pipeline or import your legacy CSV."}
                 </td>
               </tr>
             ) : (
@@ -86,6 +99,16 @@ export default async function ContactsPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/contacts"
+        searchParams={queryString(params)}
+        page={page}
+        perPage={perPage}
+        total={total}
+        rowsOnPage={contacts.length}
+        noun={{ one: "contact", many: "contacts" }}
+      />
     </div>
   );
 }

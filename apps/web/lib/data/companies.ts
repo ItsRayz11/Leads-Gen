@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { rangeFor, type PageOptions, type PagedResult } from "../paging";
 
 export interface CompanyFilters {
   q?: string;
@@ -31,21 +32,30 @@ const CLOSED_LEAD_STATUSES = [
 
 const COMPANY_SELECT = "id, name, website, domain, industry, country, company_size, updated_at";
 
-export async function listCompanies(filters: CompanyFilters = {}): Promise<CompanyListRow[]> {
+export async function listCompanies(
+  filters: CompanyFilters = {},
+  options: PageOptions = {}
+): Promise<PagedResult<CompanyListRow>> {
   const supabase = await createClient();
+  const { from, to } = rangeFor(options);
+
   let query = supabase
     .from("companies")
-    .select(COMPANY_SELECT)
+    .select(COMPANY_SELECT, { count: "exact" })
     .order("updated_at", { ascending: false })
-    .limit(500);
+    // A stable tiebreaker, so a row cannot slip between pages when
+    // several share an updated_at.
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
   if (filters.country) query = query.eq("country", filters.country);
   if (filters.industry) query = query.eq("industry", filters.industry);
 
-  const { data: companies, error } = await query;
+  const { data: companies, error, count } = await query;
   if (error) throw error;
-  if (!companies || companies.length === 0) return [];
+  const total = count ?? 0;
+  if (!companies || companies.length === 0) return { rows: [], total };
 
   const companyIds = companies.map((c) => c.id);
 
@@ -66,11 +76,14 @@ export async function listCompanies(filters: CompanyFilters = {}): Promise<Compa
     contactsCount.set(contact.company_id, (contactsCount.get(contact.company_id) ?? 0) + 1);
   }
 
-  return companies.map((c) => ({
-    ...c,
-    open_leads_count: openLeadsCount.get(c.id) ?? 0,
-    contacts_count: contactsCount.get(c.id) ?? 0,
-  }));
+  return {
+    rows: companies.map((c) => ({
+      ...c,
+      open_leads_count: openLeadsCount.get(c.id) ?? 0,
+      contacts_count: contactsCount.get(c.id) ?? 0,
+    })),
+    total,
+  };
 }
 
 export async function getCompanyDetail(id: string) {

@@ -3,26 +3,37 @@ import { listCompanies } from "../../../lib/data/companies";
 import { formatDate } from "../../../lib/utils";
 import { Input } from "../../../components/ui/input";
 import { Button } from "../../../components/ui/button";
+import { Pager } from "../../../components/ui/pager";
+import { queryString, resolvePage, resolvePerPage, single, type SearchParams } from "../../../lib/paging";
 
 export default async function CompaniesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const companies = await listCompanies(params);
+  const q = single(params, "q");
+  const page = resolvePage(single(params, "page"));
+  const perPage = resolvePerPage(single(params, "perPage"));
+
+  const { rows: companies, total } = await listCompanies(
+    { q, country: single(params, "country"), industry: single(params, "industry") },
+    { page, perPage }
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Companies</h1>
-          <p className="text-sm text-muted-foreground">{companies.length} companies</p>
+          <p className="text-sm text-muted-foreground">
+            {total} compan{total === 1 ? "y" : "ies"}
+          </p>
         </div>
       </div>
 
       <form className="flex gap-2">
-        <Input name="q" defaultValue={params.q ?? ""} placeholder="Search by name…" className="max-w-xs" />
+        <Input name="q" defaultValue={q ?? ""} placeholder="Search by name…" className="max-w-xs" />
         <Button type="submit" variant="secondary" size="sm">
           Search
         </Button>
@@ -46,7 +57,9 @@ export default async function CompaniesPage({
             {companies.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
-                  No companies yet. Run a discovery pipeline or import your legacy CSV.
+                  {q
+                    ? "No companies match that search."
+                    : "No companies yet. Run a discovery pipeline or import your legacy CSV."}
                 </td>
               </tr>
             ) : (
@@ -78,6 +91,16 @@ export default async function CompaniesPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/companies"
+        searchParams={queryString(params)}
+        page={page}
+        perPage={perPage}
+        total={total}
+        rowsOnPage={companies.length}
+        noun={{ one: "company", many: "companies" }}
+      />
     </div>
   );
 }

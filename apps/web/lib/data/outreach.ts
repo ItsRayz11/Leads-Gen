@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { rangeFor, type PageOptions, type PagedResult } from "../paging";
 
 export interface OutreachListRow {
   id: string;
@@ -24,15 +25,21 @@ const OUTREACH_SELECT = `
   contact:contacts ( id, name )
 `;
 
-export async function listOutreach(): Promise<OutreachListRow[]> {
+export async function listOutreach(
+  options: PageOptions = {}
+): Promise<PagedResult<OutreachListRow>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { from, to } = rangeFor(options);
+
+  const { data, error, count } = await supabase
     .from("outreach")
-    .select(OUTREACH_SELECT)
+    .select(OUTREACH_SELECT, { count: "exact" })
     .order("sent_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (error) throw error;
-  return (data ?? []) as unknown as OutreachListRow[];
+  const rows = (data ?? []) as unknown as OutreachListRow[];
+  return { rows, total: count ?? rows.length };
 }

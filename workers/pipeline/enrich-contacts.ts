@@ -5,17 +5,8 @@ import { enrichContactsViaHunter } from "../connectors/optional-paid/hunter.js";
 import { enrichContactsViaProspeo } from "../connectors/optional-paid/prospeo.js";
 import { enrichContactViaApollo } from "../connectors/optional-paid/apollo.js";
 import { rescoreLead } from "./rescore-lead.js";
-import { vertical1HiringRules } from "../scoring/rules/vertical1-hiring.js";
-import { vertical2GeneralRules } from "../scoring/rules/vertical2-general.js";
-import { vertical3CardAffiliateRules } from "../scoring/rules/vertical3-card-affiliate.js";
+import { RULES_BY_VERTICAL } from "../scoring/rules-by-vertical.js";
 import { normalizeDomain } from "./shared.js";
-import type { ScoreRule } from "../scoring/score.js";
-
-const RULES_BY_VERTICAL: Record<Vertical, ScoreRule[]> = {
-  hiring: vertical1HiringRules,
-  general: vertical2GeneralRules,
-  card_affiliate: vertical3CardAffiliateRules,
-};
 
 /**
  * Backfills a named contact for companies that have a website but no contact

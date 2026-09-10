@@ -407,6 +407,7 @@ export interface Database {
           breakdown: Json;
           is_human_override: boolean;
           override_reason: string | null;
+          tier_limited_by: string | null;
           computed_at: string;
         };
         Insert: {
@@ -423,6 +424,7 @@ export interface Database {
           breakdown?: Json;
           is_human_override?: boolean;
           override_reason?: string | null;
+          tier_limited_by?: string | null;
           computed_at?: string;
         };
         Update: {
@@ -439,6 +441,7 @@ export interface Database {
           breakdown?: Json;
           is_human_override?: boolean;
           override_reason?: string | null;
+          tier_limited_by?: string | null;
           computed_at?: string;
         };
         Relationships: [{ foreignKeyName: 'lead_scores_lead_id_fkey'; columns: ['lead_id']; isOneToOne: false; referencedRelation: 'leads'; referencedColumns: ['id'] }];

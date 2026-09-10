@@ -15,6 +15,7 @@
     "run:vertical3": "npm run run:vertical3 -w workers",
     "run:vertical2": "npm run run:vertical2 -w workers",
     "enrich:contacts": "npm run enrich:contacts -w workers",
+    "rescore:all": "npm run rescore:all -w workers",
     "dev:web": "npm run dev -w apps/web",
     "test": "vitest run",
     "test:watch": "vitest",

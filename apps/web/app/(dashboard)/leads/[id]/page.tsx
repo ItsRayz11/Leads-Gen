@@ -12,6 +12,7 @@ import { OutreachResultControl } from "../../../../components/lead/outreach-resu
 import { QualifyPanel } from "../../../../components/lead/qualify-panel";
 import { VerificationControl } from "../../../../components/lead/verification-control";
 import { ScoreOverride } from "../../../../components/lead/score-override";
+import { ScoreDimensions } from "../../../../components/lead/score-dimensions";
 import { Button } from "../../../../components/ui/button";
 import { formatDate, formatDateTime, timeAgo } from "../../../../lib/utils";
 
@@ -104,6 +105,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         <CardContent className="space-y-3 pt-0 text-sm">
           {latestScore ? (
             <>
+              <ScoreDimensions score={latestScore} tierLimitedBy={latestScore.tier_limited_by} />
               <ul className="space-y-1">
                 {Array.isArray(latestScore.breakdown) &&
                   (latestScore.breakdown as any[]).map((b, i) => (

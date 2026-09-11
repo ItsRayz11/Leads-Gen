@@ -116,6 +116,11 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+      <div className="border-t border-border px-3 py-3 text-xs text-muted-foreground">
+        <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>{" "}
+        <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">K</kbd>{" "}
+        to jump anywhere
+      </div>
     </aside>
   );
 }

@@ -34,6 +34,20 @@ const CALL_BY_PROVIDER: Record<string, (params: ProviderCallParams) => Promise<s
 };
 
 /**
+ * search_interpretation and lead_qualification both parse the model's output
+ * as strict JSON — the same input should reliably produce the same filters
+ * or the same score, not drift between calls. outreach_drafting writes
+ * free-form prose sent to a real prospect, where some natural variety is
+ * wanted rather than a robotic, identical draft every time.
+ */
+const TEMPERATURE_BY_USE_CASE: Record<string, number> = {
+  search_interpretation: 0.2,
+  lead_qualification: 0.2,
+  outreach_drafting: 0.7,
+};
+const DEFAULT_TEMPERATURE = 0.4;
+
+/**
  * The key to actually call a provider with — an env var if set, otherwise
  * whatever's stored (encrypted) in provider_secrets from the Integrations
  * page. Env vars stay the faster path so existing deployments are unaffected.
@@ -96,8 +110,10 @@ export async function generateText(useCase: string, prompt: string): Promise<Gen
   const apiKey = keysByProvider.get(setting.provider)!;
   const model = setting.model || DEFAULT_MODEL_BY_PROVIDER[setting.provider];
 
+  const temperature = TEMPERATURE_BY_USE_CASE[useCase] ?? DEFAULT_TEMPERATURE;
+
   try {
-    const text = await call({ apiKey, model, prompt });
+    const text = await call({ apiKey, model, prompt, temperature });
     return { text, provider: setting.provider, model };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "AI provider call failed." };
@@ -115,7 +131,12 @@ export async function testProviderConnection(
   if (!call) return { ok: false, error: `Unknown provider "${provider}".` };
 
   try {
-    await call({ apiKey, model: model || DEFAULT_MODEL_BY_PROVIDER[provider], prompt: "Reply with only the word: OK" });
+    await call({
+      apiKey,
+      model: model || DEFAULT_MODEL_BY_PROVIDER[provider],
+      prompt: "Reply with only the word: OK",
+      temperature: DEFAULT_TEMPERATURE,
+    });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Connection test failed." };

@@ -2,6 +2,8 @@ export interface ProviderCallParams {
   apiKey: string;
   model: string;
   prompt: string;
+  /** Lower = more consistent/deterministic (structured extraction), higher = more varied (creative writing). */
+  temperature: number;
 }
 
 async function parseErrorBody(res: Response): Promise<string> {
@@ -27,11 +29,11 @@ async function parseJsonResponse(res: Response, label: string): Promise<any> {
   return res.json();
 }
 
-export async function callOpenAI({ apiKey, model, prompt }: ProviderCallParams): Promise<string> {
+export async function callOpenAI({ apiKey, model, prompt, temperature }: ProviderCallParams): Promise<string> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature: 0.4 }),
+    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature }),
   });
   if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${await parseErrorBody(res)}`);
   const data = await parseJsonResponse(res, "OpenAI");
@@ -40,7 +42,7 @@ export async function callOpenAI({ apiKey, model, prompt }: ProviderCallParams):
   return text;
 }
 
-export async function callAnthropic({ apiKey, model, prompt }: ProviderCallParams): Promise<string> {
+export async function callAnthropic({ apiKey, model, prompt, temperature }: ProviderCallParams): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -48,7 +50,7 @@ export async function callAnthropic({ apiKey, model, prompt }: ProviderCallParam
       "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model, max_tokens: 1024, temperature, messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`Anthropic error ${res.status}: ${await parseErrorBody(res)}`);
   const data = await parseJsonResponse(res, "Anthropic");
@@ -57,12 +59,12 @@ export async function callAnthropic({ apiKey, model, prompt }: ProviderCallParam
   return text;
 }
 
-export async function callGoogle({ apiKey, model, prompt }: ProviderCallParams): Promise<string> {
+export async function callGoogle({ apiKey, model, prompt, temperature }: ProviderCallParams): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature } }),
   });
   if (!res.ok) throw new Error(`Google AI error ${res.status}: ${await parseErrorBody(res)}`);
   const data = await parseJsonResponse(res, "Google AI");
@@ -81,11 +83,12 @@ export async function callOpenAICompatible({
   baseUrl,
   model,
   prompt,
+  temperature,
 }: ProviderCallParams & { baseUrl: string }): Promise<string> {
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature }),
   });
   if (!res.ok) throw new Error(`${baseUrl} error ${res.status}: ${await parseErrorBody(res)}`);
   const data = await parseJsonResponse(res, baseUrl);

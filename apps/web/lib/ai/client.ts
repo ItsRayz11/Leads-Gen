@@ -20,7 +20,7 @@ const ENV_KEY_BY_PROVIDER: Record<string, string | undefined> = {
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-5",
-  google: "gemini-2.0-flash",
+  google: "gemini-3.6-flash",
   openrouter: "openai/gpt-4o-mini",
   agentrouter: "claude-opus-5",
 };

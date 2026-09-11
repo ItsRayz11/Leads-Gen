@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 
 const FEED_URL = "https://api.cryptojobslist.com/jobs.rss";
 
@@ -23,6 +23,7 @@ export const cryptoJobsListConnector: SourceConnector = {
       // CryptoJobsList titles are typically "Role at Company"
       const [rolePart, companyPart] = title.split(/\s+at\s+/i);
       const projectName = companyPart?.trim() || title;
+      const classification = classifyServiceType(rolePart ?? title);
 
       signals.push(
         buildRawSignal({
@@ -32,6 +33,13 @@ export const cryptoJobsListConnector: SourceConnector = {
           signalText: `${rolePart ?? title}. ${(item.contentSnippet ?? "").slice(0, 500)}`.trim(),
           evidenceUrl: item.link,
           postedAt: item.isoDate ? new Date(item.isoDate) : undefined,
+          extraMeta: {
+            // cryptojobslist.com only lists crypto/web3 roles — a real
+            // property of the source, not a guess about any individual listing.
+            industry: "Web3 / Crypto",
+            opportunityType: classification?.opportunityType,
+            serviceType: classification?.serviceType,
+          },
           raw: item,
         })
       );

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { parseLocation } from "../../pipeline/shared.js";
 import { repoPath } from "../../repo-root.js";
 
 const CONFIG_PATH = repoPath("config/target-companies/greenhouse.json");
@@ -47,6 +48,7 @@ export const greenhouseConnector: SourceConnector = {
         if (!titleMatchesKeywords(job.title, keywords)) continue;
 
         const textContent = (job.content ?? "").replace(/<[^>]+>/g, " ");
+        const classification = classifyServiceType(job.title);
         signals.push(
           buildRawSignal({
             sourceConnector: "greenhouse",
@@ -55,6 +57,11 @@ export const greenhouseConnector: SourceConnector = {
             signalText: `${job.title}${job.location?.name ? ` (${job.location.name})` : ""}. ${textContent.slice(0, 500)}`.trim(),
             evidenceUrl: job.absolute_url,
             postedAt: job.updated_at ? new Date(job.updated_at) : undefined,
+            extraMeta: {
+              ...parseLocation(job.location?.name),
+              opportunityType: classification?.opportunityType,
+              serviceType: classification?.serviceType,
+            },
             raw: job,
           })
         );

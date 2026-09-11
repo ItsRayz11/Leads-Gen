@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { parseLocation } from "../../pipeline/shared.js";
 import { repoPath } from "../../repo-root.js";
 
 const CONFIG_PATH = repoPath("config/target-companies/ashby.json");
@@ -47,6 +48,7 @@ export const ashbyConnector: SourceConnector = {
       for (const job of jobs) {
         if (!titleMatchesKeywords(job.title, keywords)) continue;
 
+        const classification = classifyServiceType(job.title);
         signals.push(
           buildRawSignal({
             sourceConnector: "ashby",
@@ -61,6 +63,9 @@ export const ashbyConnector: SourceConnector = {
               employmentType: job.employmentType?.toLowerCase().includes("full")
                 ? "full_time"
                 : undefined,
+              ...parseLocation(job.location),
+              opportunityType: classification?.opportunityType,
+              serviceType: classification?.serviceType,
             },
             raw: job,
           })

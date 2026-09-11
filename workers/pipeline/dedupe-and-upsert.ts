@@ -10,6 +10,14 @@ import {
   normalizeDomain,
 } from "./shared.js";
 
+function firstMeta(signals: RawSignal[], key: string): string | undefined {
+  for (const signal of signals) {
+    const value = signal.meta?.[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
+}
+
 /**
  * Groups raw signals by (vertical, company identity), upserts one company +
  * one lead (opportunity) per group, records signals/evidence/contacts, then
@@ -34,18 +42,41 @@ export async function dedupeAndUpsert(
     const website = signals.find((s) => s.website)?.website ?? null;
     const domain = normalizeDomain(website);
 
+    const companyEnrichment = {
+      industry: firstMeta(signals, "industry"),
+      country: firstMeta(signals, "country"),
+      region: firstMeta(signals, "region"),
+      city: firstMeta(signals, "city"),
+      company_size: firstMeta(signals, "companySize"),
+    };
+
     let companyId: string;
+    const existingCompanySelect = "id, industry, country, region, city, company_size";
     const existingCompany = domain
-      ? await supabase.from("companies").select("id").eq("domain", domain).maybeSingle()
-      : await supabase.from("companies").select("id").ilike("name", companyName).maybeSingle();
+      ? await supabase.from("companies").select(existingCompanySelect).eq("domain", domain).maybeSingle()
+      : await supabase.from("companies").select(existingCompanySelect).ilike("name", companyName).maybeSingle();
 
     if (existingCompany.data) {
       companyId = existingCompany.data.id;
-      if (website) await supabase.from("companies").update({ website }).eq("id", companyId);
+      // Only fill fields still blank — never overwrite a value another
+      // connector or a human already set.
+      const patch: {
+        website?: string;
+        industry?: string;
+        country?: string;
+        region?: string;
+        city?: string;
+        company_size?: string;
+      } = {};
+      if (website) patch.website = website;
+      for (const [field, value] of Object.entries(companyEnrichment) as [keyof typeof companyEnrichment, string | undefined][]) {
+        if (value && !existingCompany.data[field]) patch[field] = value;
+      }
+      if (Object.keys(patch).length > 0) await supabase.from("companies").update(patch).eq("id", companyId);
     } else {
       const { data: inserted, error } = await supabase
         .from("companies")
-        .insert({ name: companyName, website, domain })
+        .insert({ name: companyName, website, domain, ...companyEnrichment })
         .select("id")
         .single();
       if (error || !inserted) throw error ?? new Error("Failed to insert company");
@@ -64,21 +95,38 @@ export async function dedupeAndUpsert(
       }
     }
 
+    const leadEnrichment = {
+      opportunity_type: firstMeta(signals, "opportunityType"),
+      service_type: firstMeta(signals, "serviceType"),
+    };
+
     const leadTitle = VERTICAL_LEAD_TITLE[vertical];
     let leadId: string;
     const existingLead = await supabase
       .from("leads")
-      .select("id")
+      .select("id, opportunity_type, service_type")
       .eq("company_id", companyId)
       .eq("title", leadTitle)
       .maybeSingle();
 
     if (existingLead.data) {
       leadId = existingLead.data.id;
+      const patch: { opportunity_type?: string; service_type?: string } = {};
+      for (const [field, value] of Object.entries(leadEnrichment) as [keyof typeof leadEnrichment, string | undefined][]) {
+        if (value && !existingLead.data[field]) patch[field] = value;
+      }
+      if (Object.keys(patch).length > 0) await supabase.from("leads").update(patch).eq("id", leadId);
     } else {
       const { data: inserted, error } = await supabase
         .from("leads")
-        .insert({ company_id: companyId, title: leadTitle, vertical, source_type: "free", status: "new" })
+        .insert({
+          company_id: companyId,
+          title: leadTitle,
+          vertical,
+          source_type: "free",
+          status: "new",
+          ...leadEnrichment,
+        })
         .select("id")
         .single();
       if (error || !inserted) throw error ?? new Error("Failed to insert lead");

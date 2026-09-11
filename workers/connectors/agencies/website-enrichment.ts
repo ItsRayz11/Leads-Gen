@@ -3,6 +3,23 @@ import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { extractSiteSignals, stripHtml } from "./shared.js";
 import { repoPath } from "../../repo-root.js";
 
+/**
+ * Buckets a self-reported headcount into the same bands the search filters
+ * offer (COMPANY_SIZES in apps/web/lib/ai/search-filters.ts) so a "company
+ * size" filter has real values on `companies.company_size` to match against.
+ */
+function bucketCompanySize(teamSize: number | undefined): string | undefined {
+  if (teamSize === undefined) return undefined;
+  if (teamSize <= 10) return "1-10";
+  if (teamSize <= 50) return "11-50";
+  if (teamSize <= 200) return "51-200";
+  if (teamSize <= 500) return "201-500";
+  if (teamSize <= 1000) return "501-1000";
+  if (teamSize <= 5000) return "1001-5000";
+  if (teamSize <= 10000) return "5001-10000";
+  return "10001+";
+}
+
 const CONFIG_PATH = repoPath("config/target-companies/agencies.json");
 
 interface AgencySeed {
@@ -66,7 +83,13 @@ export const websiteEnrichmentConnector: SourceConnector = {
           }.`,
         evidenceUrl: agency.website,
         discoveredAt: new Date(),
-        meta: { ...siteSignals },
+        meta: {
+          ...siteSignals,
+          industry: siteSignals.hasCryptoClientHistory ? "Web3 / Crypto" : "Digital Marketing",
+          companySize: bucketCompanySize(siteSignals.teamSizeEstimate),
+          opportunityType: "card_affiliate",
+          serviceType: "Bitget Card Affiliate",
+        },
         raw: { agency, combinedTextLength: combinedText.length },
       });
     }

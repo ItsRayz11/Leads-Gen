@@ -1,6 +1,6 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { getProviderSecret } from "@leads/db/secrets.js";
-import { buildRawSignal, roleKeywordsFrom } from "../job-boards/shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom } from "../job-boards/shared.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 // twitterapi.io (third-party, paid) advanced search — NOT free. Requires
@@ -72,8 +72,9 @@ export const twitterHiringSignalsConnector: SourceConnector = {
     const query = buildQuery(keywords);
     const tweets = await searchTweets(query, apiKey);
 
-    return tweets.map((tweet) =>
-      buildRawSignal({
+    return tweets.map((tweet) => {
+      const classification = classifyServiceType(tweet.text);
+      return buildRawSignal({
         sourceConnector: "twitter-hiring-signals",
         vertical: "hiring",
         // Company name isn't structured data on a tweet — this needs a human
@@ -83,9 +84,14 @@ export const twitterHiringSignalsConnector: SourceConnector = {
         signalText: tweet.text,
         evidenceUrl: tweet.url,
         postedAt: tweet.createdAt ? new Date(tweet.createdAt) : undefined,
-        extraMeta: { needsManualConfirmation: true, authorHandle: tweet.author.userName },
+        extraMeta: {
+          needsManualConfirmation: true,
+          authorHandle: tweet.author.userName,
+          opportunityType: classification?.opportunityType,
+          serviceType: classification?.serviceType,
+        },
         raw: tweet,
-      })
-    );
+      });
+    });
   },
 };

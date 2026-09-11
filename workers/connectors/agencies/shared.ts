@@ -2,7 +2,7 @@ const AD_SPEND_REGEX = /\$\s?([\d,.]+)\s*([MmKkBb])?\+?\s*(?:in\s+)?(?:ad|media|
 
 const CHANNEL_KEYWORDS = ["meta ads", "facebook ads", "google ads", "tiktok ads", "programmatic", "instagram ads", "paid social", "ppc"];
 
-const CRYPTO_KEYWORDS = ["web3", "crypto", "blockchain", "defi", "nft", "token launch"];
+export const CRYPTO_KEYWORDS = ["web3", "crypto", "blockchain", "defi", "nft", "token launch"];
 
 const TEAM_SIZE_REGEX = /(?:team of|we are|over)\s+(\d{1,4})\+?\s*(?:people|employees|experts|marketers|specialists)/i;
 

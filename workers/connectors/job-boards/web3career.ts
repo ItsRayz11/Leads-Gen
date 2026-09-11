@@ -1,6 +1,7 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { getProviderSecret } from "@leads/db/secrets.js";
-import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { parseLocation } from "../../pipeline/shared.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 // Confirmed live endpoint (not officially documented in public docs, taken
@@ -45,8 +46,9 @@ export const web3CareerConnector: SourceConnector = {
 
     return jobs
       .filter((job) => titleMatchesKeywords(job.title, keywords))
-      .map((job) =>
-        buildRawSignal({
+      .map((job) => {
+        const classification = classifyServiceType(job.title);
+        return buildRawSignal({
           sourceConnector: "web3career",
           vertical: "hiring",
           projectName: job.company,
@@ -55,8 +57,16 @@ export const web3CareerConnector: SourceConnector = {
           ).slice(0, 500)}`.trim(),
           evidenceUrl: job.url,
           postedAt: job.date_epoch ? new Date(job.date_epoch * 1000) : undefined,
+          extraMeta: {
+            // web3.career only lists crypto/web3 companies — a real property
+            // of the source, not a guess about any individual listing.
+            industry: "Web3 / Crypto",
+            ...(job.remote ? { region: "Global / Remote" } : parseLocation(job.location)),
+            opportunityType: classification?.opportunityType,
+            serviceType: classification?.serviceType,
+          },
           raw: job,
-        })
-      );
+        });
+      });
   },
 };

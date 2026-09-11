@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
+import { parseLocation } from "../../pipeline/shared.js";
 import { repoPath } from "../../repo-root.js";
 
 const CONFIG_PATH = repoPath("config/target-companies/lever.json");
@@ -43,6 +44,7 @@ export const leverConnector: SourceConnector = {
       for (const posting of postings) {
         if (!titleMatchesKeywords(posting.text, keywords)) continue;
 
+        const classification = classifyServiceType(posting.text);
         signals.push(
           buildRawSignal({
             sourceConnector: "lever",
@@ -58,6 +60,9 @@ export const leverConnector: SourceConnector = {
                 posting.categories?.commitment?.toLowerCase().includes("full")
                   ? "full_time"
                   : undefined,
+              ...parseLocation(posting.categories?.location),
+              opportunityType: classification?.opportunityType,
+              serviceType: classification?.serviceType,
             },
             raw: posting,
           })

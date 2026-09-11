@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RawSignal, Vertical } from "@leads/core";
-import { freshnessFromDate, groupSignalsByCompany, normalizeDomain } from "../workers/pipeline/shared";
+import { freshnessFromDate, groupSignalsByCompany, normalizeDomain, parseLocation } from "../workers/pipeline/shared";
+import { classifyServiceType } from "../workers/connectors/job-boards/shared";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -165,5 +166,60 @@ describe("freshnessFromDate", () => {
 
   it("treats a future date as fresh", () => {
     expect(freshnessFromDate(new Date(Date.now() + 5 * DAY_MS))).toBe("fresh");
+  });
+});
+
+describe("parseLocation", () => {
+  it.each([null, undefined, "", "   "])("returns {} for %j", (input) => {
+    expect(parseLocation(input)).toEqual({});
+  });
+
+  it("recognizes a bare 'Remote' as global remote with no country", () => {
+    expect(parseLocation("Remote")).toEqual({ region: "Global / Remote" });
+  });
+
+  it("pulls the country out of 'Remote - US' style suffixes", () => {
+    expect(parseLocation("Remote - US")).toEqual({ region: "North America", country: "United States" });
+    expect(parseLocation("Remote (UK)")).toEqual({ region: "Western Europe", country: "United Kingdom" });
+  });
+
+  it("parses 'City, Country'", () => {
+    expect(parseLocation("Lisbon, Portugal")).toEqual({
+      city: "Lisbon",
+      country: "Portugal",
+      region: "Western Europe",
+    });
+  });
+
+  it("parses 'City, State, Country'", () => {
+    expect(parseLocation("New York, NY, United States")).toEqual({
+      city: "New York",
+      country: "United States",
+      region: "North America",
+    });
+  });
+
+  it("leaves region unset for a country outside the curated map", () => {
+    expect(parseLocation("Reykjavik, Iceland")).toEqual({ city: "Reykjavik", country: "Iceland" });
+  });
+
+  it("does not invent a country from a single unparsable token", () => {
+    expect(parseLocation("Worldwide")).toEqual({});
+  });
+});
+
+describe("classifyServiceType", () => {
+  it.each([
+    ["Community Manager", { opportunityType: "community_mgmt", serviceType: "Community Management" }],
+    ["Discord Community Lead", { opportunityType: "community_mgmt", serviceType: "Discord Management" }],
+    ["KOL & Influencer Marketing Manager", { opportunityType: "kol_marketing", serviceType: "KOL Marketing" }],
+    ["Affiliate Partnerships Lead", { opportunityType: "affiliate", serviceType: "Bitget Card Affiliate" }],
+    ["Growth Marketing Manager", { opportunityType: "growth_marketing", serviceType: "Growth Marketing" }],
+  ])("classifies %j", (title, expected) => {
+    expect(classifyServiceType(title)).toEqual(expected);
+  });
+
+  it("returns null when nothing matches", () => {
+    expect(classifyServiceType("Backend Engineer")).toBeNull();
   });
 });

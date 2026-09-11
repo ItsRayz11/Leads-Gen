@@ -2,6 +2,7 @@ import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { getProviderSecret } from "@leads/db/secrets.js";
 import { buildRawSignal } from "../job-boards/shared.js";
 import { isProviderEnabled } from "../../provider-gate.js";
+import { CRYPTO_KEYWORDS } from "../agencies/shared.js";
 
 const BASE_URL = "https://api.twitterapi.io/twitter/tweet/advanced_search";
 
@@ -71,8 +72,10 @@ export const twitterAgencySignalsConnector: SourceConnector = {
 
     const tweets = await searchTweets(buildQuery(), apiKey);
 
-    return tweets.map((tweet) =>
-      buildRawSignal({
+    return tweets.map((tweet) => {
+      const lowerText = tweet.text.toLowerCase();
+      const hasCryptoMention = CRYPTO_KEYWORDS.some((k) => lowerText.includes(k));
+      return buildRawSignal({
         sourceConnector: "twitter-agency-signals",
         vertical: "card_affiliate",
         // Same caveat as the hiring-signal Twitter connector: a tweet's
@@ -82,9 +85,15 @@ export const twitterAgencySignalsConnector: SourceConnector = {
         signalText: tweet.text,
         evidenceUrl: tweet.url,
         postedAt: tweet.createdAt ? new Date(tweet.createdAt) : undefined,
-        extraMeta: { needsManualConfirmation: true, authorHandle: tweet.author.userName },
+        extraMeta: {
+          needsManualConfirmation: true,
+          authorHandle: tweet.author.userName,
+          industry: hasCryptoMention ? "Web3 / Crypto" : "Digital Marketing",
+          opportunityType: "card_affiliate",
+          serviceType: "Bitget Card Affiliate",
+        },
         raw: tweet,
-      })
-    );
+      });
+    });
   },
 };

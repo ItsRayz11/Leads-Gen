@@ -686,6 +686,7 @@ export interface Database {
           exclude_keywords: string[] | null;
           enabled: boolean;
           created_at: string;
+          live_search_providers: string[] | null;
         };
         Insert: {
           id?: string;
@@ -697,6 +698,7 @@ export interface Database {
           exclude_keywords?: string[] | null;
           enabled?: boolean;
           created_at?: string;
+          live_search_providers?: string[] | null;
         };
         Update: {
           id?: string;
@@ -708,6 +710,7 @@ export interface Database {
           exclude_keywords?: string[] | null;
           enabled?: boolean;
           created_at?: string;
+          live_search_providers?: string[] | null;
         };
         Relationships: [];
       };

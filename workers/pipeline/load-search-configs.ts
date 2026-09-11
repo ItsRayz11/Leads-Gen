@@ -1,6 +1,13 @@
 import { createServiceRoleClient } from "@leads/db";
-import type { SearchConfig, Vertical } from "@leads/core";
+import type { LiveSearchProvider, SearchConfig, Vertical } from "@leads/core";
+import { LIVE_SEARCH_PROVIDERS } from "@leads/core";
 import { readJsonConfig } from "../config-files.js";
+
+function toLiveSearchProviders(value: string[] | null | undefined): LiveSearchProvider[] | undefined {
+  if (!value || value.length === 0) return undefined;
+  const valid = value.filter((v): v is LiveSearchProvider => (LIVE_SEARCH_PROVIDERS as readonly string[]).includes(v));
+  return valid.length > 0 ? valid : undefined;
+}
 
 /**
  * Relative paths, resolved and read on demand — calling repoPath() here at
@@ -34,6 +41,7 @@ export async function loadSearchConfigs(vertical: Vertical): Promise<SearchConfi
       industries: r.industries ?? undefined,
       geography: r.geography ?? undefined,
       excludeKeywords: r.exclude_keywords ?? undefined,
+      liveSearchProviders: toLiveSearchProviders(r.live_search_providers),
     }));
   }
 

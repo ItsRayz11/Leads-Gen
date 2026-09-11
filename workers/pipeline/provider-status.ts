@@ -205,6 +205,13 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     capabilities: twitterCapabilities,
   });
 
+  const LIVE_SEARCH_CAPABILITIES = {
+    industry: cap(true, "asked for directly, not a structured filter"),
+    geography: cap(true, "asked for directly, not a structured filter"),
+    jobTitle: cap(true, "asked for directly, not a structured filter"),
+    companySize: cap(false, "live search results carry no headcount data"),
+  };
+
   const hasGoogleKey = Boolean(process.env.GOOGLE_AI_API_KEY) || Boolean(await getProviderSecret("google"));
   statuses.push({
     connector: "gemini-web-search",
@@ -214,12 +221,31 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     reason: hasGoogleKey
       ? "ready — searches live via Google, grounded by Gemini"
       : "no Google AI API key configured — add one on the Integrations page",
-    capabilities: {
-      industry: cap(true, "asked for directly, not a structured filter"),
-      geography: cap(true, "asked for directly, not a structured filter"),
-      jobTitle: cap(true, "asked for directly, not a structured filter"),
-      companySize: cap(false, "live search results carry no headcount data"),
-    },
+    capabilities: LIVE_SEARCH_CAPABILITIES,
+  });
+
+  const hasOpenaiKey = Boolean(process.env.OPENAI_API_KEY) || Boolean(await getProviderSecret("openai"));
+  statuses.push({
+    connector: "openai-web-search",
+    label: "Live web search (OpenAI)",
+    vertical: "live_search",
+    configured: hasOpenaiKey,
+    reason: hasOpenaiKey
+      ? "ready — searches live via OpenAI's web search tool"
+      : "no OpenAI API key configured — add one on the Integrations page",
+    capabilities: LIVE_SEARCH_CAPABILITIES,
+  });
+
+  const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY) || Boolean(await getProviderSecret("anthropic"));
+  statuses.push({
+    connector: "anthropic-web-search",
+    label: "Live web search (Anthropic)",
+    vertical: "live_search",
+    configured: hasAnthropicKey,
+    reason: hasAnthropicKey
+      ? "ready — searches live via Claude's web search tool"
+      : "no Anthropic API key configured — add one on the Integrations page",
+    capabilities: LIVE_SEARCH_CAPABILITIES,
   });
 
   return statuses;

@@ -3,6 +3,7 @@
 import { Input, Select } from "./ui/input";
 import { MultiSelect } from "./ui/multi-select";
 import { Badge } from "./ui/badge";
+import { LiveSearchProviderPicker } from "./live-search-provider-picker";
 import { useFilterOptions } from "../lib/hooks/use-filter-options";
 import {
   FILTER_LABELS,
@@ -14,7 +15,7 @@ import {
   type StructuredSearchFilters,
 } from "../lib/ai/search-filters";
 
-type ArrayFieldKey = Exclude<keyof StructuredSearchFilters, "minScore" | "vertical">;
+type ArrayFieldKey = Exclude<keyof StructuredSearchFilters, "minScore" | "vertical" | "liveSearchProviders">;
 
 /**
  * Renders interpreted filters as editable fields. The interpretation is a
@@ -138,6 +139,13 @@ export function SearchFilterEditor({
           </p>
         )}
       </div>
+
+      {filters.vertical === "live_search" && (
+        <LiveSearchProviderPicker
+          value={filters.liveSearchProviders}
+          onChange={(next) => set("liveSearchProviders", next)}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {arrayFields.map((field) => (

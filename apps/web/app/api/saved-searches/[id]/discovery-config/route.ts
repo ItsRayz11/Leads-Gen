@@ -54,6 +54,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       industries: filters.industries.length > 0 ? filters.industries : null,
       geography: geography.length > 0 ? geography : null,
       exclude_keywords: filters.excludeKeywords.length > 0 ? filters.excludeKeywords : null,
+      live_search_providers: filters.liveSearchProviders.length > 0 ? filters.liveSearchProviders : null,
       enabled: true,
     })
     .select("id")

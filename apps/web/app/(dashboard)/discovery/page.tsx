@@ -122,9 +122,11 @@ export default async function DiscoveryPage() {
           writing directly into this same database. Results appear in All Leads / Pipeline once a run completes.
           <br />
           <span className="text-foreground">Live web search</span> is different from the other three: instead of
-          reading a fixed set of sites, it asks Gemini to run a real, live Google search for whatever your query
-          says and only keeps results it found an actual source page for. It needs a Google AI API key configured
-          on the Integrations page.
+          reading a fixed set of sites, it runs a real, live web search for whatever your query says and only
+          keeps results backed by an actual source page. You can pick which AI model(s) run it — Gemini, OpenAI,
+          and/or Anthropic — in the filter editor once "live_search" is the selected vertical; each one needs its
+          own API key configured on the Integrations page, and picking more than one costs and takes proportionally
+          more since each is a separate paid search.
         </CardContent>
       </Card>
     </div>

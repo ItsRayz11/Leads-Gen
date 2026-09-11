@@ -15,7 +15,7 @@ const VERTICALS: { id: Vertical; label: string; hint: string }[] = [
   {
     id: "vertical4",
     label: "Live web search",
-    hint: "A real, live Gemini-grounded Google search per your search configs — needs a Google AI API key",
+    hint: "A real, live search per your search configs, via whichever AI model(s) each one picked (Gemini by default)",
   },
 ];
 

@@ -1,13 +1,22 @@
-import type { RawSignal, SourceConnector } from "@leads/core";
+import type { LiveSearchProvider, RawSignal, SourceConnector } from "@leads/core";
 import { geminiWebSearchConnector } from "../connectors/live-search/gemini-web-search.js";
+import { openaiWebSearchConnector } from "../connectors/live-search/openai-web-search.js";
+import { anthropicWebSearchConnector } from "../connectors/live-search/anthropic-web-search.js";
 import { loadSearchConfigs } from "./load-search-configs.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical4LiveSearchRules } from "../scoring/rules/vertical4-live-search.js";
 import { isRunAsScript, runStatus, type ConnectorCount, type RunResult } from "./shared.js";
 import { errorMessage, safeReporter, type ProgressReporter } from "./progress.js";
-import { getAllProviderStatuses } from "./provider-status.js";
+import { getAllProviderStatuses, type ProviderStatus } from "./provider-status.js";
 
-const CONNECTORS: SourceConnector[] = [geminiWebSearchConnector];
+const CONNECTOR_BY_PROVIDER: Record<LiveSearchProvider, SourceConnector> = {
+  google: geminiWebSearchConnector,
+  openai: openaiWebSearchConnector,
+  anthropic: anthropicWebSearchConnector,
+};
+
+/** Gemini only — guaranteed configured already (search interpretation needs it), so a config with no explicit choice still runs rather than silently doing nothing. */
+const DEFAULT_PROVIDERS: LiveSearchProvider[] = ["google"];
 
 /** A readable name for one config's keyword set, used in progress labels. */
 function configLabel(keywords: string[] | undefined): string {
@@ -18,9 +27,14 @@ function configLabel(keywords: string[] | undefined): string {
 /**
  * Live-search equivalent of runVertical2General: loads whatever
  * search_configs rows exist for vertical=live_search (created via "Run
- * discovery pipeline" or "Add to discovery pipeline" on a saved search) and
- * runs a real, grounded Gemini web search per config, instead of reading a
- * fixed set of connectors — that's the whole point of this vertical.
+ * discovery pipeline" or "Add to discovery pipeline" on a saved search) and,
+ * for each, runs a real web search through whichever provider(s) that
+ * config chose (`live_search_providers` — see search-filter-editor.tsx),
+ * defaulting to Gemini alone when none were picked. Running more than one
+ * provider for the same config means more (differently-sourced) results,
+ * not a replacement for the others — the dedupe step downstream merges
+ * whatever they all found into one lead per company, and a company two
+ * providers both found scores extra corroboration credit for it.
  */
 export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Promise<RunResult> {
   const report = safeReporter(onProgress);
@@ -37,16 +51,21 @@ export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Pro
     return { signalsFound: 0, connectorCounts, leadsUpserted: [], note, status: "completed_with_warnings" };
   }
 
-  const googleStatus = (await getAllProviderStatuses()).find((s) => s.connector === "gemini-web-search");
+  const providerStatuses = await getAllProviderStatuses();
+  const statusFor = (connectorName: string): ProviderStatus | undefined =>
+    providerStatuses.find((s) => s.connector === connectorName);
 
+  const providerCount = new Set(configs.flatMap((c) => c.liveSearchProviders ?? DEFAULT_PROVIDERS)).size;
   report({
     type: "stage",
     stage: "connectors",
-    message: `Running a live grounded search across ${configs.length} search config(s)`,
+    message: `Running live web search (${providerCount} provider${providerCount === 1 ? "" : "s"}) across ${configs.length} search config(s)`,
   });
 
   for (const config of configs) {
-    for (const connector of CONNECTORS) {
+    const providers = config.liveSearchProviders?.length ? config.liveSearchProviders : DEFAULT_PROVIDERS;
+    for (const provider of providers) {
+      const connector = CONNECTOR_BY_PROVIDER[provider];
       const label = `${connector.name} · ${configLabel(config.keywords)}`;
       if (!connector.enabled) {
         report({ type: "connector:skipped", connector: label, reason: "disabled" });
@@ -55,7 +74,8 @@ export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Pro
       report({ type: "connector:start", connector: label });
       try {
         const signals = await connector.fetch(config);
-        const note = signals.length === 0 && googleStatus && !googleStatus.configured ? googleStatus.reason : undefined;
+        const status = statusFor(connector.name);
+        const note = signals.length === 0 && status && !status.configured ? status.reason : undefined;
         connectorCounts.push({ connector: label, signalsFound: signals.length, note });
         report({ type: "connector:done", connector: label, signalsFound: signals.length, note });
         allSignals.push(...signals);

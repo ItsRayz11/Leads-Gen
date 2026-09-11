@@ -1,4 +1,6 @@
 import type { Json } from "@leads/db/types.js";
+import { LIVE_SEARCH_PROVIDERS } from "@leads/core";
+export { LIVE_SEARCH_PROVIDERS, LIVE_SEARCH_PROVIDER_LABELS, type LiveSearchProvider } from "@leads/core";
 
 /**
  * The structured shape a natural-language discovery query is interpreted
@@ -22,6 +24,8 @@ export interface StructuredSearchFilters {
   freshness: string[];
   minScore: number | null;
   vertical: string | null;
+  /** live_search only — which AI provider(s) run the web search. Empty means "use the default" (Google/Gemini alone). */
+  liveSearchProviders: string[];
 }
 
 export const EMPTY_FILTERS: StructuredSearchFilters = {
@@ -39,6 +43,7 @@ export const EMPTY_FILTERS: StructuredSearchFilters = {
   freshness: [],
   minScore: null,
   vertical: null,
+  liveSearchProviders: [],
 };
 
 export const VERTICALS = ["hiring", "general", "card_affiliate", "live_search"] as const;
@@ -285,6 +290,7 @@ export const FILTER_LABELS: Record<keyof StructuredSearchFilters, string> = {
   freshness: "Freshness",
   minScore: "Min score",
   vertical: "Vertical",
+  liveSearchProviders: "Live search providers",
 };
 
 const ARRAY_FIELDS = [
@@ -339,6 +345,14 @@ export function normalizeFilters(input: unknown): StructuredSearchFilters {
         : NaN;
 
   const verticalRaw = typeof raw.vertical === "string" ? raw.vertical.trim().toLowerCase() : "";
+  const vertical = (VERTICALS as readonly string[]).includes(verticalRaw) ? verticalRaw : null;
+
+  const liveSearchProvidersRaw = toStringArray(raw.liveSearchProviders, LIVE_SEARCH_PROVIDERS);
+  // A live_search config with no explicit provider choice still needs to run
+  // something — default to Google/Gemini alone, the one guaranteed already
+  // configured (search interpretation depends on it too).
+  const liveSearchProviders =
+    vertical === "live_search" && liveSearchProvidersRaw.length === 0 ? ["google"] : liveSearchProvidersRaw;
 
   return {
     keywords: toStringArray(raw.keywords),
@@ -354,7 +368,8 @@ export function normalizeFilters(input: unknown): StructuredSearchFilters {
     statuses: toStringArray(raw.statuses, STATUSES),
     freshness: toStringArray(raw.freshness, FRESHNESS_VALUES),
     minScore: Number.isFinite(minScoreNum) ? Math.min(100, Math.max(0, Math.round(minScoreNum))) : null,
-    vertical: (VERTICALS as readonly string[]).includes(verticalRaw) ? verticalRaw : null,
+    vertical,
+    liveSearchProviders,
   };
 }
 
@@ -374,6 +389,9 @@ export function describeFilters(filters: StructuredSearchFilters): string {
     if (values.length > 0) parts.push(`${FILTER_LABELS[field]}: ${values.join(", ")}`);
   }
   if (filters.vertical) parts.push(`${FILTER_LABELS.vertical}: ${filters.vertical.replace(/_/g, " ")}`);
+  if (filters.vertical === "live_search" && filters.liveSearchProviders.length > 0) {
+    parts.push(`${FILTER_LABELS.liveSearchProviders}: ${filters.liveSearchProviders.join(", ")}`);
+  }
   if (filters.minScore !== null) parts.push(`${FILTER_LABELS.minScore}: ${filters.minScore}`);
   return parts.length > 0 ? parts.join(" · ") : "No structured filters";
 }
@@ -385,6 +403,7 @@ export function filtersToSearchParams(filters: StructuredSearchFilters): URLSear
     if (filters[field].length > 0) params.set(field, filters[field].join("|"));
   }
   if (filters.vertical) params.set("vertical", filters.vertical);
+  if (filters.liveSearchProviders.length > 0) params.set("liveSearchProviders", filters.liveSearchProviders.join("|"));
   if (filters.minScore !== null) params.set("minScore", String(filters.minScore));
   return params;
 }
@@ -416,6 +435,7 @@ export function filtersFromSearchParams(params: Record<string, string | string[]
     freshness: read("freshness"),
     minScore: single("minScore"),
     vertical: single("vertical"),
+    liveSearchProviders: read("liveSearchProviders"),
   });
 }
 

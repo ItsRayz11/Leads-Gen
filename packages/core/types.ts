@@ -78,12 +78,28 @@ export interface RawSignal {
   raw: unknown;
 }
 
+/**
+ * The AI providers that can run a live_search connector. Each has its own,
+ * differently-indexed web/grounded-search tool — running more than one for
+ * the same request finds companies a single provider's search would miss.
+ */
+export const LIVE_SEARCH_PROVIDERS = ["google", "openai", "anthropic"] as const;
+export type LiveSearchProvider = (typeof LIVE_SEARCH_PROVIDERS)[number];
+
+export const LIVE_SEARCH_PROVIDER_LABELS: Record<LiveSearchProvider, string> = {
+  google: "Google (Gemini)",
+  openai: "OpenAI",
+  anthropic: "Anthropic (Claude)",
+};
+
 export interface SearchConfig {
   vertical: Vertical;
   keywords?: string[];
   industries?: string[];
   geography?: string[];
   excludeKeywords?: string[];
+  /** live_search only. Empty/undefined defaults to `["google"]` — see run-vertical4-live-search.ts. */
+  liveSearchProviders?: LiveSearchProvider[];
   [key: string]: unknown;
 }
 

@@ -64,6 +64,11 @@ export function MultiSelect({
     onChange(value.filter((v) => v.toLowerCase() !== item.toLowerCase()));
   }
 
+  function selectAll() {
+    onChange([...value, ...filtered]);
+    setQuery("");
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -116,6 +121,15 @@ export function MultiSelect({
         <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-card shadow-md">
           {loading && (
             <div className="px-3 py-1.5 text-sm text-muted-foreground">Loading options…</div>
+          )}
+          {!loading && filtered.length > 1 && (
+            <button
+              type="button"
+              onClick={selectAll}
+              className="block w-full border-b border-border px-3 py-1.5 text-left text-sm font-medium text-primary hover:bg-accent"
+            >
+              Select all ({filtered.length})
+            </button>
           )}
           {!loading && query.trim() && allowCustom && !exactMatch && (
             <button

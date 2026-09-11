@@ -3,6 +3,7 @@ import {
   runVertical1Hiring,
   runVertical2General,
   runVertical3CardAffiliate,
+  runVertical4LiveSearch,
   type ProgressEvent,
 } from "@leads/workers";
 import { createClient } from "../../../../lib/supabase/server";
@@ -18,6 +19,7 @@ const RUNNERS = {
   vertical1: runVertical1Hiring,
   vertical2: runVertical2General,
   vertical3: runVertical3CardAffiliate,
+  vertical4: runVertical4LiveSearch,
 } as const;
 
 type Vertical = keyof typeof RUNNERS;
@@ -50,7 +52,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const vertical = body?.vertical;
   if (!isVertical(vertical)) {
-    return NextResponse.json({ error: "vertical must be one of vertical1, vertical2, vertical3" }, { status: 400 });
+    return NextResponse.json(
+      { error: "vertical must be one of vertical1, vertical2, vertical3, vertical4" },
+      { status: 400 }
+    );
   }
 
   const run = RUNNERS[vertical];

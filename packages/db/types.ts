@@ -13,7 +13,7 @@ export type VerificationStatus =
   | 'unverified';
 export type Freshness = 'fresh' | 'recent' | 'aging' | 'stale' | 'unknown';
 export type SignalStrength = 'weak' | 'moderate' | 'strong';
-export type LeadVertical = 'hiring' | 'general' | 'card_affiliate';
+export type LeadVertical = 'hiring' | 'general' | 'card_affiliate' | 'live_search';
 export type LeadTier = 'A+' | 'A' | 'B' | 'C' | 'Low Priority';
 export type LeadStatus =
   | 'new'

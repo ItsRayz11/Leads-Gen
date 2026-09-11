@@ -41,7 +41,7 @@ export const EMPTY_FILTERS: StructuredSearchFilters = {
   vertical: null,
 };
 
-export const VERTICALS = ["hiring", "general", "card_affiliate"] as const;
+export const VERTICALS = ["hiring", "general", "card_affiliate", "live_search"] as const;
 export const TIERS = ["A+", "A", "B", "C", "Low Priority"] as const;
 export const FRESHNESS_VALUES = ["fresh", "recent", "aging", "stale", "unknown"] as const;
 

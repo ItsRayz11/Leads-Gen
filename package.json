@@ -14,6 +14,7 @@
     "run:vertical1": "npm run run:vertical1 -w workers",
     "run:vertical3": "npm run run:vertical3 -w workers",
     "run:vertical2": "npm run run:vertical2 -w workers",
+    "run:vertical4": "npm run run:vertical4 -w workers",
     "enrich:contacts": "npm run enrich:contacts -w workers",
     "rescore:all": "npm run rescore:all -w workers",
     "generate:notifications": "npm run generate:notifications -w workers",

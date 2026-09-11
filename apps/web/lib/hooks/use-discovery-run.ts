@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ProgressEvent, RunResult } from "@leads/workers";
 import { readEventStream } from "../sse";
 
-export type Vertical = "vertical1" | "vertical2" | "vertical3";
+export type Vertical = "vertical1" | "vertical2" | "vertical3" | "vertical4";
 
 /** A connector's live state within the run currently on screen. */
 export type ConnectorState = {

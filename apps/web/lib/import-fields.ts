@@ -16,7 +16,7 @@ import type { LeadStatus, LeadTier, LeadVertical } from "@leads/db/types.js";
  */
 export const MAX_IMPORT_ROWS = 1000;
 
-export const VALID_VERTICALS: LeadVertical[] = ["hiring", "general", "card_affiliate"];
+export const VALID_VERTICALS: LeadVertical[] = ["hiring", "general", "card_affiliate", "live_search"];
 export const VALID_TIERS: LeadTier[] = ["A+", "A", "B", "C", "Low Priority"];
 export const VALID_STATUSES: LeadStatus[] = [
   "new", "researching", "qualified", "contacted", "follow_up", "replied",

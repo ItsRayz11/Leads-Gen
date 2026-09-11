@@ -37,7 +37,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const vertical = filters.vertical ?? search.vertical;
   if (!vertical || !(VERTICALS as readonly string[]).includes(vertical)) {
     return NextResponse.json(
-      { error: "A discovery config needs a vertical (hiring, general, or card_affiliate)." },
+      { error: `A discovery config needs a vertical (${VERTICALS.join(", ")}).` },
       { status: 422 }
     );
   }

@@ -116,9 +116,15 @@ export default async function DiscoveryPage() {
           discovery</span> on it in <span className="text-foreground">Saved Searches</span>. Either way, running a
           vertical (from here or above) triggers the same code as{" "}
           <code className="text-foreground">npm run run:vertical1</code>,{" "}
-          <code className="text-foreground">npm run run:vertical2</code>, or{" "}
-          <code className="text-foreground">npm run run:vertical3</code> — or the scheduled GitHub Action —
+          <code className="text-foreground">npm run run:vertical2</code>,{" "}
+          <code className="text-foreground">npm run run:vertical3</code>, or{" "}
+          <code className="text-foreground">npm run run:vertical4</code> — or the scheduled GitHub Action —
           writing directly into this same database. Results appear in All Leads / Pipeline once a run completes.
+          <br />
+          <span className="text-foreground">Live web search</span> is different from the other three: instead of
+          reading a fixed set of sites, it asks Gemini to run a real, live Google search for whatever your query
+          says and only keeps results it found an actual source page for. It needs a Google AI API key configured
+          on the Integrations page.
         </CardContent>
       </Card>
     </div>

@@ -35,6 +35,7 @@ const VERTICAL_LABELS: Record<string, string> = {
   hiring: "Hiring signals",
   general: "General (HN)",
   card_affiliate: "Card affiliate",
+  live_search: "Live web search",
 };
 
 /**

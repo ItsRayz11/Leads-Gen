@@ -31,6 +31,7 @@ const VERTICAL_TO_RUN_KEY: Record<string, Vertical> = {
   hiring: "vertical1",
   general: "vertical2",
   card_affiliate: "vertical3",
+  live_search: "vertical4",
 };
 
 /**

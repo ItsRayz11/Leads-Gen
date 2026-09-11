@@ -19,7 +19,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
 ];
 
 export const LEAD_TIERS: LeadTier[] = ["A+", "A", "B", "C", "Low Priority"];
-export const LEAD_VERTICALS: LeadVertical[] = ["hiring", "general", "card_affiliate"];
+export const LEAD_VERTICALS: LeadVertical[] = ["hiring", "general", "card_affiliate", "live_search"];
 export const LEAD_PRIORITIES: Priority[] = ["low", "normal", "high", "urgent"];
 export const SIGNAL_STRENGTH_OPTIONS: SignalStrength[] = ["weak", "moderate", "strong"];
 export const SOURCE_TYPES: SourceType[] = ["free", "paid"];
@@ -35,6 +35,7 @@ export const VERTICAL_LABELS: Record<LeadVertical, string> = {
   hiring: "Hiring signal",
   general: "General B2B / B2C",
   card_affiliate: "Bitget Card affiliate",
+  live_search: "Live web search",
 };
 
 export function humanize(value: string): string {

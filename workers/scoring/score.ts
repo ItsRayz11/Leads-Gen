@@ -100,6 +100,16 @@ export const VERTICAL_DIMENSION_WEIGHTS: Record<Vertical, DimensionWeights> = {
     contactability: 15,
     evidence: 10,
   },
+  // A live grounded search result carries no funding/headcount data either
+  // (see vertical4-live-search.ts) — fit and evidence (a real citation) are
+  // what this vertical can actually vouch for.
+  live_search: {
+    fit: 30,
+    evidence: 25,
+    intent: 20,
+    freshness: 15,
+    contactability: 10,
+  },
 };
 
 export interface TierThreshold {

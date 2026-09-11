@@ -54,6 +54,16 @@ const OFFER_MENU: Record<string, string[]> = {
     "Bitget Wallet Card affiliate partnership (agency refers clients, earns per activation)",
     "co-marketing of the card to the agency's existing client base",
   ],
+  // A live-search lead can be almost anything the request asked for, so this
+  // stays the full menu rather than one narrow offer — pick whichever the
+  // lead's actual signal/industry data below best supports.
+  live_search: [
+    "social media management and content",
+    "community management (Discord/Telegram moderation and growth)",
+    "KOL / influencer marketing coordination",
+    "growth/performance marketing retainer",
+    "Bitget Wallet Card affiliate partnership (agency refers clients, earns per activation)",
+  ],
 };
 
 function formatVerticalData(data: Record<string, unknown>): string[] {

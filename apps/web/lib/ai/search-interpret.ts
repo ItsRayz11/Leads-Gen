@@ -69,9 +69,19 @@ export function buildSearchInterpretPrompt(queryText: string, vertical?: string 
     `  "vertical": string | null    // only from: ${VERTICALS.join(", ")}`,
     "}",
     "",
+    "What each vertical actually is:",
+    "- hiring: a company is publicly hiring for a role (job boards, \"who is hiring\" threads).",
+    "- general: a company/project just launched or was announced (Hacker News / YC launch posts).",
+    "- card_affiliate: specifically about Bitget Wallet Card affiliate/referral prospects.",
+    "- live_search: none of the above fit, but the request still describes a real, findable category of",
+    "  company or person (an industry, a role, a activity) — this runs a live Gemini-grounded Google search",
+    "  for exactly what was asked, so it fits almost anything concrete.",
+    "",
     vertical
       ? `The user already picked the "${vertical}" vertical, so set "vertical" to "${vertical}".`
-      : 'Infer "vertical" from context when reasonably clear; otherwise set it to null.',
+      : 'Infer "vertical" from context. Prefer "live_search" over null whenever the request names or implies ' +
+        'a real, concrete kind of company/person to find — null is only for a request too vague or empty to ' +
+        "search for anything (e.g. no topic at all).",
     "",
     "Request:",
     queryText,
@@ -154,7 +164,12 @@ export function heuristicFilters(queryText: string, vertical?: string | null): S
   const minScore = scoreMatch ? Number(scoreMatch[1]) : null;
 
   const signalTypes = SIGNAL_PHRASES.filter(([re]) => re.test(lower)).map(([, type]) => type);
-  const detectedVertical = vertical ?? VERTICAL_PHRASES.find(([re]) => re.test(lower))?.[1] ?? null;
+  // Same principle as the AI prompt: a request with actual content to search
+  // for defaults to "live_search" rather than null, since that vertical can
+  // act on almost any concrete request. Only a genuinely empty query stays
+  // without a vertical — there's nothing to run a search for.
+  const detectedVertical =
+    vertical ?? VERTICAL_PHRASES.find(([re]) => re.test(lower))?.[1] ?? (text ? "live_search" : null);
 
   // Words already consumed as a structured filter must not also land in
   // `keywords`: keywords are OR-ed together, so leaving "tier" or "score" in

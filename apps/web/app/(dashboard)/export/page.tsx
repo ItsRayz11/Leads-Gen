@@ -2,7 +2,7 @@ import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Select } from "../../../components/ui/input";
 
-const VERTICALS = ["hiring", "general", "card_affiliate"];
+const VERTICALS = ["hiring", "general", "card_affiliate", "live_search"];
 const TIERS = ["A+", "A", "B", "C", "Low Priority"];
 const STATUSES = [
   "new", "researching", "qualified", "contacted", "follow_up", "replied",

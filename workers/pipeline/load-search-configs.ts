@@ -11,6 +11,7 @@ const FALLBACK_CONFIG_FILES: Record<Vertical, string | null> = {
   hiring: null,
   card_affiliate: null,
   general: "config/search-configs/vertical2.json",
+  live_search: null,
 };
 
 /**

@@ -58,6 +58,7 @@ export const VERTICAL_LEAD_TITLE: Record<Vertical, string> = {
   hiring: "Hiring signal opportunity",
   general: "General B2B/B2C opportunity",
   card_affiliate: "Bitget Card affiliate opportunity",
+  live_search: "Live web search opportunity",
 };
 
 /**

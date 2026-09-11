@@ -205,5 +205,22 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     capabilities: twitterCapabilities,
   });
 
+  const hasGoogleKey = Boolean(process.env.GOOGLE_AI_API_KEY) || Boolean(await getProviderSecret("google"));
+  statuses.push({
+    connector: "gemini-web-search",
+    label: "Live web search (Gemini)",
+    vertical: "live_search",
+    configured: hasGoogleKey,
+    reason: hasGoogleKey
+      ? "ready — searches live via Google, grounded by Gemini"
+      : "no Google AI API key configured — add one on the Integrations page",
+    capabilities: {
+      industry: cap(true, "asked for directly, not a structured filter"),
+      geography: cap(true, "asked for directly, not a structured filter"),
+      jobTitle: cap(true, "asked for directly, not a structured filter"),
+      companySize: cap(false, "live search results carry no headcount data"),
+    },
+  });
+
   return statuses;
 }

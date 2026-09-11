@@ -12,6 +12,11 @@ const VERTICALS: { id: Vertical; label: string; hint: string }[] = [
   },
   { id: "vertical2", label: "General (HN)", hint: "Hacker News, driven by your search configs" },
   { id: "vertical3", label: "Card affiliate", hint: "Seeded agency websites + Twitter" },
+  {
+    id: "vertical4",
+    label: "Live web search",
+    hint: "A real, live Gemini-grounded Google search per your search configs — needs a Google AI API key",
+  },
 ];
 
 export function DiscoveryRunPanel() {

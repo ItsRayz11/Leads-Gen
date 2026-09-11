@@ -1,4 +1,4 @@
-export type Vertical = "hiring" | "general" | "card_affiliate";
+export type Vertical = "hiring" | "general" | "card_affiliate" | "live_search";
 
 /**
  * Matches the `leads.tier` check constraint in the database. "Low Priority"

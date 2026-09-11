@@ -13,6 +13,7 @@
     "run:vertical1": "tsx pipeline/run-vertical1-hiring.ts",
     "run:vertical3": "tsx pipeline/run-vertical3-card-affiliate.ts",
     "run:vertical2": "tsx pipeline/run-vertical2-general.ts",
+    "run:vertical4": "tsx pipeline/run-vertical4-live-search.ts",
     "enrich:contacts": "tsx pipeline/enrich-contacts.ts",
     "rescore:all": "tsx pipeline/rescore-all.ts",
     "generate:notifications": "tsx pipeline/generate-notifications.ts"

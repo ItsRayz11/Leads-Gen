@@ -12,25 +12,47 @@ import {
 
 /**
  * Builds the prompt that turns a natural-language "what am I looking for"
- * query into the structured filter shape. Deliberately strict: the model is
- * only allowed to fill fields the query actually implies, because a filter
- * the user never asked for silently hides leads.
+ * query into the structured filter shape. This is a starting point the user
+ * always reviews and edits before running the search (see
+ * SearchFilterEditor), never the final word — so for the targeting fields
+ * (industries, countries, regions, roles, services, signal types, vertical)
+ * the model should proactively propose its best-guess reading using its own
+ * domain knowledge, not stay silent whenever a query doesn't spell a field
+ * out explicitly. A helpful guess the user tweaks beats an empty field they
+ * have to fill in from scratch.
+ *
+ * Pipeline-state fields (tiers/statuses/freshness/minScore) stay
+ * conservative: those describe where a lead already sits in the CRM, and a
+ * wrong guess there would silently exclude entire existing pipeline stages
+ * rather than just under-targeting a fresh search.
  */
 export function buildSearchInterpretPrompt(queryText: string, vertical?: string | null): string {
   return [
-    "You convert a natural-language lead-search request into a strict JSON filter object.",
+    "You convert a natural-language lead-search request into a strict JSON filter object for a lead-generation CRM.",
+    "",
+    "Business context: the requester runs an agency selling social/community/crypto marketing services",
+    "(community management, KOL/influencer marketing, Discord/Telegram management, growth marketing) and",
+    "Bitget Wallet Card affiliate referrals, mostly targeting Web3/crypto, gaming, and fintech companies.",
+    "Use this context plus general knowledge to make an informed, best-effort reading of short or",
+    "implicit queries — do not require the request to spell out a field by name before filling it.",
     "",
     "Output rules:",
     "- Respond with ONLY a JSON object. No prose, no markdown fences, no explanation.",
-    "- Fill a field ONLY if the request actually implies it. Leave arrays empty and scalars null otherwise.",
-    "- Never invent a country, industry, or role the request does not mention or clearly imply.",
+    "- For industries, countries, regions, roleKeywords, serviceTypes, signalTypes, and vertical: proactively",
+    "  infer plausible values from context and domain knowledge, even when the request only implies them",
+    "  indirectly. Leaving these blank is a worse outcome than a reasonable guess, since the user reviews",
+    "  and edits every field before the search runs.",
+    "- For tiers, statuses, freshness, and minScore: stay conservative — only fill these if the request",
+    "  explicitly mentions a pipeline stage, status, freshness, or score threshold.",
+    "- Still never invent a specific country, company size, or role that contradicts something the request",
+    "  does state — inference should extend the request, not override it.",
     "- Keep every array item short (1-3 words), lowercase unless it is a proper noun.",
     "",
     "JSON shape (all keys required):",
     "{",
     '  "keywords": string[],        // free-text terms to match against the lead title / buying signal / notes',
     '  "excludeKeywords": string[], // terms that disqualify a lead',
-    '  "roleKeywords": string[],    // job titles/roles, when the request is about who a company is hiring',
+    '  "roleKeywords": string[],    // job titles/roles likely to be the buyer or hiring contact for this request',
     `  "industries": string[],      // prefer these when they fit: ${INDUSTRIES.join(", ")} — otherwise a short custom one`,
     '  "countries": string[],       // full country names, e.g. "Singapore", "United States"',
     '  "regions": string[],         // broader areas, e.g. "Southeast Asia", "MENA"',
@@ -46,7 +68,7 @@ export function buildSearchInterpretPrompt(queryText: string, vertical?: string 
     "",
     vertical
       ? `The user already picked the "${vertical}" vertical, so set "vertical" to "${vertical}".`
-      : 'If the request does not clearly indicate a vertical, set "vertical" to null.',
+      : 'Infer "vertical" from context when reasonably clear; otherwise set it to null.',
     "",
     "Request:",
     queryText,

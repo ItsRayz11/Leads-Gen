@@ -37,7 +37,18 @@ const VERTICAL_LABELS: Record<string, string> = {
   card_affiliate: "Card affiliate",
 };
 
-export function ProviderStatusPanel({ statuses }: { statuses: ProviderStatus[] }) {
+/**
+ * `configureHref` links a not-configured row to where it's fixed — omit it
+ * (e.g. when this panel is shown on the Integrations page itself) so the
+ * table doesn't grow a column of links to the page it's already on.
+ */
+export function ProviderStatusPanel({
+  statuses,
+  configureHref = "/integrations",
+}: {
+  statuses: ProviderStatus[];
+  configureHref?: string | null;
+}) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
@@ -47,7 +58,7 @@ export function ProviderStatusPanel({ statuses }: { statuses: ProviderStatus[] }
             <th className="px-3 py-2">Vertical</th>
             <th className="px-3 py-2">Status</th>
             <th className="px-3 py-2">Capabilities</th>
-            <th className="px-3 py-2" />
+            {configureHref && <th className="px-3 py-2" />}
           </tr>
         </thead>
         <tbody>
@@ -73,13 +84,15 @@ export function ProviderStatusPanel({ statuses }: { statuses: ProviderStatus[] }
                   ))}
                 </div>
               </td>
-              <td className="px-3 py-2">
-                {!s.configured && (
-                  <a href="/integrations" className="text-xs text-primary hover:underline">
-                    Configure →
-                  </a>
-                )}
-              </td>
+              {configureHref && (
+                <td className="px-3 py-2">
+                  {!s.configured && (
+                    <a href={configureHref} className="text-xs text-primary hover:underline">
+                      Configure →
+                    </a>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

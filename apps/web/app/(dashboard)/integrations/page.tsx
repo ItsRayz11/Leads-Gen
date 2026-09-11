@@ -1,9 +1,11 @@
 import { listProviderConnections, getProviderKeyReport, type ProviderKeySource } from "../../../lib/data/integrations";
+import { listProviderStatuses } from "../../../lib/data/providers";
 import { listTargetCompanies } from "@leads/db/target-companies.js";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { ProviderToggle } from "../../../components/provider-toggle";
 import { ProviderSecretForm } from "../../../components/provider-secret-form";
+import { ProviderStatusPanel } from "../../../components/provider-status-panel";
 import { TargetCompanyList } from "../../../components/target-company-list";
 import type { ProviderConnection } from "@leads/db/types.js";
 
@@ -148,10 +150,11 @@ function AiProviderRow({
 }
 
 export default async function IntegrationsPage() {
-  const [connections, { status: keyStatus, storeUnavailable }, targetCompanyRows] = await Promise.all([
+  const [connections, { status: keyStatus, storeUnavailable }, targetCompanyRows, providerStatuses] = await Promise.all([
     listProviderConnections(),
     getProviderKeyReport(),
     Promise.all(TARGET_COMPANY_SECTIONS.map((s) => listTargetCompanies(s.source))),
+    listProviderStatuses(),
   ]);
 
   const byName = new Map(connections.map((c) => [c.provider_name, c]));
@@ -180,6 +183,20 @@ export default async function IntegrationsPage() {
           </p>
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sources</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            What&apos;s actually configured right now for Discovery, and what each source can and can&apos;t filter
+            on. A filter marked ✕ here has no effect for that source — it isn&apos;t silently dropped, it just
+            can&apos;t be acted on by that connector.
+          </p>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ProviderStatusPanel statuses={providerStatuses} configureHref={null} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

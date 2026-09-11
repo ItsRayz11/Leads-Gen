@@ -1,17 +1,14 @@
 import { discoveryWriteBlocker, listSearchConfigs } from "../../../lib/data/discovery";
 import { getUseCaseStatus } from "../../../lib/data/ai-settings";
-import { listProviderStatuses } from "../../../lib/data/providers";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { SavedSearchForm } from "../../../components/saved-search-form";
 import { DiscoveryRunPanel } from "../../../components/discovery-run-panel";
-import { ProviderStatusPanel } from "../../../components/provider-status-panel";
 
 export default async function DiscoveryPage() {
-  const [configs, aiStatus, providerStatuses] = await Promise.all([
+  const [configs, aiStatus] = await Promise.all([
     listSearchConfigs(),
     getUseCaseStatus("search_interpretation"),
-    listProviderStatuses(),
   ]);
   const writeBlocker = discoveryWriteBlocker();
 
@@ -21,30 +18,26 @@ export default async function DiscoveryPage() {
         <h1 className="text-xl font-semibold">Lead Discovery</h1>
         <p className="text-sm text-muted-foreground">
           Describe what you want in plain English; it gets interpreted into structured filters you can review, then
-          run immediately or save for later. Run a vertical's connectors right now below, or let the scheduled
-          GitHub Action handle it.
+          run immediately or save for later. See what each source can actually act on in{" "}
+          <a href="/integrations" className="text-primary hover:underline">
+            Integrations
+          </a>
+          .
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Sources</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-0">
-          <p className="text-sm text-muted-foreground">
-            What&apos;s actually configured right now, and what each source can and can&apos;t filter on. A filter
-            marked ✕ here has no effect for that source — it isn&apos;t silently dropped, it just can&apos;t be
-            acted on by that connector.
+      <details className="group rounded-lg border border-border">
+        <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-sm font-medium marker:content-none">
+          <span className="text-muted-foreground transition-transform group-open:rotate-90">▶</span>
+          Advanced: run a vertical directly
+        </summary>
+        <div className="space-y-3 border-t border-border p-4 pt-3">
+          <p className="text-xs text-muted-foreground">
+            Re-runs every enabled connector for a whole vertical against its existing configs — the same thing
+            clicking <span className="text-foreground">Run</span> on a new search below does, minus adding a new
+            one. Same as <code className="text-foreground">npm run run:vertical1</code> or the scheduled GitHub
+            Action.
           </p>
-          <ProviderStatusPanel statuses={providerStatuses} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Run discovery now</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 pt-0">
           {writeBlocker && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
               <p className="font-medium text-destructive">Runs started here can&apos;t save results</p>
@@ -52,8 +45,8 @@ export default async function DiscoveryPage() {
             </div>
           )}
           <DiscoveryRunPanel />
-        </CardContent>
-      </Card>
+        </div>
+      </details>
 
       <Card>
         <CardHeader>

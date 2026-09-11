@@ -1,4 +1,5 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { buildRawSignal, roleKeywordsFrom } from "../job-boards/shared.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
@@ -59,9 +60,9 @@ export const twitterHiringSignalsConnector: SourceConnector = {
   enabled: true,
   requiresApiKey: true,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const apiKey = process.env.TWITTERAPI_IO_KEY;
+    const apiKey = process.env.TWITTERAPI_IO_KEY ?? (await getProviderSecret("twitterapi_io"));
     if (!apiKey) {
-      console.warn("[twitter-hiring-signals] TWITTERAPI_IO_KEY not set, skipping connector.");
+      console.warn("[twitter-hiring-signals] no API key (env or Integrations page), skipping connector.");
       return [];
     }
 

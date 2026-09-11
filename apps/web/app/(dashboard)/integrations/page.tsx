@@ -1,7 +1,8 @@
-import { listProviderConnections, getEnvConfiguredProviders } from "../../../lib/data/integrations";
+import { listProviderConnections, getProviderKeyStatus, type ProviderKeySource } from "../../../lib/data/integrations";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { ProviderToggle } from "../../../components/provider-toggle";
+import { ProviderSecretForm } from "../../../components/provider-secret-form";
 import type { ProviderConnection } from "@leads/db/types.js";
 
 const LEAD_DATA_PROVIDERS = [
@@ -18,41 +19,50 @@ const AI_PROVIDERS = [
   { key: "anthropic", name: "Anthropic" },
   { key: "google", name: "Google AI" },
   { key: "openrouter", name: "OpenRouter" },
+  { key: "agentrouter", name: "AgentRouter" },
 ] as const;
 
+function SourceBadge({ source }: { source: ProviderKeySource }) {
+  if (source === "none") return <Badge variant="outline">No key configured</Badge>;
+  if (source === "env") return <Badge variant="success">Key from environment</Badge>;
+  return <Badge variant="success">Key saved (database)</Badge>;
+}
+
 /**
- * A lead/data provider only runs when its key is in the environment AND its
- * toggle is on, so the badge reports that combination rather than either half
- * on its own. A missing row counts as enabled, matching the worker-side
- * default in workers/provider-gate.ts.
+ * A lead/data provider only runs when its key is configured (env or
+ * database) AND its toggle is on, so the badge reports that combination
+ * rather than either half on its own. A missing row counts as enabled,
+ * matching the worker-side default in workers/provider-gate.ts.
  */
 function LeadDataProviderRow({
   name,
   providerKey,
-  configured,
+  source,
   connection,
 }: {
   name: string;
   providerKey: string;
-  configured: boolean;
+  source: ProviderKeySource;
   connection: ProviderConnection | undefined;
 }) {
   const enabled = connection?.enabled ?? true;
+  const configured = source !== "none";
 
   return (
-    <div className="flex items-center justify-between border-b border-border px-4 py-3 last:border-0">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
       <div>
         <p className="text-sm font-medium">{name}</p>
         <p className="text-xs text-muted-foreground">{providerKey}</p>
       </div>
-      <div className="flex items-center gap-4">
-        {!configured ? (
-          <Badge variant="outline">No API key in environment</Badge>
-        ) : enabled ? (
-          <Badge variant="success">Active — connectors will use it</Badge>
-        ) : (
-          <Badge variant="warning">Switched off — connectors skip it</Badge>
-        )}
+      <div className="flex flex-wrap items-center gap-4">
+        <SourceBadge source={source} />
+        {configured &&
+          (enabled ? (
+            <Badge variant="success">Active — connectors will use it</Badge>
+          ) : (
+            <Badge variant="warning">Switched off — connectors skip it</Badge>
+          ))}
+        <ProviderSecretForm providerKey={providerKey} category="lead_data" source={source} />
         <ProviderToggle
           providerName={providerKey}
           category="lead_data"
@@ -66,37 +76,34 @@ function LeadDataProviderRow({
 }
 
 /**
- * Read-only on purpose. Which AI provider handles which task is chosen per
- * use case in Settings (ai_provider_settings); a switch here would be a
- * second place to disable the same thing.
+ * Which AI provider handles which task is chosen per use case in Settings
+ * (ai_provider_settings) — this row is just where the key itself lives.
  */
 function AiProviderRow({
   name,
   providerKey,
-  configured,
+  source,
 }: {
   name: string;
   providerKey: string;
-  configured: boolean;
+  source: ProviderKeySource;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-border px-4 py-3 last:border-0">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
       <div>
         <p className="text-sm font-medium">{name}</p>
         <p className="text-xs text-muted-foreground">{providerKey}</p>
       </div>
-      <Badge variant={configured ? "success" : "outline"}>
-        {configured ? "Key present in environment" : "No API key in environment"}
-      </Badge>
+      <div className="flex flex-wrap items-center gap-4">
+        <SourceBadge source={source} />
+        <ProviderSecretForm providerKey={providerKey} category="ai" source={source} />
+      </div>
     </div>
   );
 }
 
 export default async function IntegrationsPage() {
-  const [connections, envConfigured] = await Promise.all([
-    listProviderConnections(),
-    Promise.resolve(getEnvConfiguredProviders()),
-  ]);
+  const [connections, keyStatus] = await Promise.all([listProviderConnections(), getProviderKeyStatus()]);
 
   const byName = new Map(connections.map((c) => [c.provider_name, c]));
 
@@ -105,8 +112,9 @@ export default async function IntegrationsPage() {
       <div>
         <h1 className="text-xl font-semibold">Integrations</h1>
         <p className="text-sm text-muted-foreground">
-          API keys are set via environment variables (Vercel project settings or{" "}
-          <code className="text-xs">.env.local</code>), never through this UI.
+          Add or update a key below to store it (encrypted) in the database, or set the matching env var (Vercel
+          project settings or <code className="text-xs">.env.local</code>) — an env var always takes priority over a
+          saved key.
         </p>
       </div>
 
@@ -124,7 +132,7 @@ export default async function IntegrationsPage() {
               key={p.key}
               name={p.name}
               providerKey={p.key}
-              configured={envConfigured[p.key]}
+              source={keyStatus[p.key]}
               connection={byName.get(p.key)}
             />
           ))}
@@ -135,18 +143,13 @@ export default async function IntegrationsPage() {
         <CardHeader>
           <CardTitle>AI Providers</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Key status only. Pick which provider and model handles each task — lead research,
-            scoring, outreach drafting — in Settings.
+            Key status only. Pick which provider and model handles each task — search interpretation,
+            lead qualification, outreach drafting — in Settings.
           </p>
         </CardHeader>
         <CardContent className="p-0">
           {AI_PROVIDERS.map((p) => (
-            <AiProviderRow
-              key={p.key}
-              name={p.name}
-              providerKey={p.key}
-              configured={envConfigured[p.key]}
-            />
+            <AiProviderRow key={p.key} name={p.name} providerKey={p.key} source={keyStatus[p.key]} />
           ))}
         </CardContent>
       </Card>

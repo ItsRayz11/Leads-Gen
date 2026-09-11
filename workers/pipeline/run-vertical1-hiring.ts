@@ -5,9 +5,11 @@ import { ashbyConnector } from "../connectors/job-boards/ashby.js";
 import { cryptoJobsListConnector } from "../connectors/job-boards/cryptojobslist.js";
 import { web3CareerConnector } from "../connectors/job-boards/web3career.js";
 import { twitterHiringSignalsConnector } from "../connectors/twitter/hiring-signals.js";
+import { getProviderSecret } from "@leads/db/secrets.js";
+import { isProviderEnabled } from "../provider-gate.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical1HiringRules } from "../scoring/rules/vertical1-hiring.js";
-import { isRunAsScript } from "./shared.js";
+import { isRunAsScript, type ConnectorCount } from "./shared.js";
 
 const CONNECTORS: SourceConnector[] = [
   greenhouseConnector,
@@ -20,16 +22,31 @@ const CONNECTORS: SourceConnector[] = [
 
 const config: SearchConfig = { vertical: "hiring" };
 
+/** Why a connector found nothing, when the reason isn't "no matches this run" — surfaced on the Discovery page instead of a silent zero. */
+async function zeroResultNote(connectorName: string): Promise<string | undefined> {
+  if (connectorName === "web3career" && !process.env.WEB3_CAREER_API_TOKEN && !(await getProviderSecret("web3_career"))) {
+    return "no API token configured — add one on the Integrations page";
+  }
+  if (connectorName === "twitter-hiring-signals") {
+    if (!process.env.TWITTERAPI_IO_KEY && !(await getProviderSecret("twitterapi_io"))) {
+      return "no API key configured — add one on the Integrations page";
+    }
+    if (!(await isProviderEnabled("twitterapi_io"))) return "switched off on the Integrations page";
+  }
+  return undefined;
+}
+
 export async function runVertical1Hiring() {
   const allSignals: RawSignal[] = [];
-  const connectorCounts: { connector: string; signalsFound: number }[] = [];
+  const connectorCounts: ConnectorCount[] = [];
 
   for (const connector of CONNECTORS) {
     if (!connector.enabled) continue;
     try {
       const signals = await connector.fetch(config);
       console.log(`[${connector.name}] found ${signals.length} matching signals`);
-      connectorCounts.push({ connector: connector.name, signalsFound: signals.length });
+      const note = signals.length === 0 ? await zeroResultNote(connector.name) : undefined;
+      connectorCounts.push({ connector: connector.name, signalsFound: signals.length, note });
       allSignals.push(...signals);
     } catch (err) {
       console.error(`[${connector.name}] failed:`, err);

@@ -836,6 +836,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      provider_secrets: {
+        Row: {
+          provider_name: string;
+          category: ProviderCategory;
+          ciphertext: string;
+          updated_at: string;
+        };
+        Insert: {
+          provider_name: string;
+          category: ProviderCategory;
+          ciphertext: string;
+          updated_at?: string;
+        };
+        Update: {
+          provider_name?: string;
+          category?: ProviderCategory;
+          ciphertext?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       ai_provider_settings: {
         Row: {
           id: string;
@@ -959,6 +980,7 @@ export type SavedSearch = Database['public']['Tables']['saved_searches']['Row'];
 export type SearchHistory = Database['public']['Tables']['search_history']['Row'];
 export type SearchResult = Database['public']['Tables']['search_results']['Row'];
 export type ProviderConnection = Database['public']['Tables']['provider_connections']['Row'];
+export type ProviderSecret = Database['public']['Tables']['provider_secrets']['Row'];
 export type AiProviderSetting = Database['public']['Tables']['ai_provider_settings']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 export type ScoringConfig = Database['public']['Tables']['scoring_config']['Row'];

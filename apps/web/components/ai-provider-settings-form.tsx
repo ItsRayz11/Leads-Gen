@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "./ui/button";
 import { Input, Select } from "./ui/input";
 
-const PROVIDERS = ["openai", "anthropic", "google", "openrouter"];
+const PROVIDERS = ["openai", "anthropic", "google", "openrouter", "agentrouter"];
 const USE_CASES = [
   "lead_research",
   "lead_scoring",
@@ -51,7 +51,7 @@ export function AiProviderSettingsForm() {
         <Input
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          placeholder="e.g. gpt-4o, claude-sonnet-5"
+          placeholder="e.g. gpt-4o, claude-sonnet-5 (AgentRouter: claude-opus-5, deepseek-v4-flash, glm-5.3, gpt-5.6-sol)"
           className="w-48"
         />
       </div>

@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 const BASE_URL = "https://api.hunter.io/v2/domain-search";
@@ -38,9 +39,9 @@ interface HunterDomainSearchResponse {
  * mailbox exists, which is functionally a guess).
  */
 export async function enrichContactsViaHunter(domain: string): Promise<RawContact[]> {
-  const apiKey = process.env.HUNTER_API_KEY;
+  const apiKey = process.env.HUNTER_API_KEY ?? (await getProviderSecret("hunter"));
   if (!apiKey) {
-    console.warn("[hunter] HUNTER_API_KEY not set, skipping enrichment.");
+    console.warn("[hunter] no API key (env or Integrations page), skipping enrichment.");
     return [];
   }
 

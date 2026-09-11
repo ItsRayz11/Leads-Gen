@@ -1,4 +1,17 @@
 {
-  "_comment": "No free discovery API exists for ad/media-buying agencies (Clutch and DesignRush have no public API; Meta Ad Library's free tier only covers political/social/housing/credit ads, not general commercial ad spend; Google Custom Search is closed to new signups). Seed this list yourself — from manual research, referrals, or roundup articles you find — and the pipeline enriches + scores each one from its own public site and Twitter presence.",
-  "agencies": []
+  "_comment": "No free discovery API exists for ad/media-buying agencies (Clutch and DesignRush have no public API; Meta Ad Library's free tier only covers political/social/housing/credit ads, not general commercial ad spend; Google Custom Search is closed to new signups). Seed this list yourself — from manual research, referrals, or roundup articles you find — and the pipeline enriches + scores each one from its own public site and Twitter presence. Starter batch below is real crypto/web3 marketing and community-management agencies (verified via web search) — add or remove as you find more.",
+  "agencies": [
+    { "name": "Coinbound", "website": "https://coinbound.io", "twitterHandle": "coinbound" },
+    { "name": "GuerrillaBuzz", "website": "https://guerrillabuzz.com" },
+    { "name": "NinjaPromo", "website": "https://ninjapromo.io" },
+    { "name": "Lunar Strategy", "website": "https://lunarstrategy.com" },
+    { "name": "Coinband", "website": "https://coinband.io" },
+    { "name": "FinPR", "website": "https://finpr.agency" },
+    { "name": "Hype.partners", "website": "https://hype.partners" },
+    { "name": "Crowdcreate", "website": "https://crowdcreate.us" },
+    { "name": "Blockwiz", "website": "https://blockwiz.com" },
+    { "name": "ICODA", "website": "https://icoda.io", "twitterHandle": "icoda_io" },
+    { "name": "AmaZix", "website": "https://www.amazix.com", "twitterHandle": "AmaZixOfficial" },
+    { "name": "Single Grain", "website": "https://www.singlegrain.com", "twitterHandle": "singlegrain" }
+  ]
 }

@@ -3,14 +3,23 @@ import { hackerNewsConnector } from "../connectors/generic/hackernews.js";
 import { loadSearchConfigs } from "./load-search-configs.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical2GeneralRules } from "../scoring/rules/vertical2-general.js";
-import { isRunAsScript } from "./shared.js";
+import { isRunAsScript, type ConnectorCount } from "./shared.js";
 
 const CONNECTORS: SourceConnector[] = [hackerNewsConnector];
 
 export async function runVertical2General() {
   const configs = await loadSearchConfigs("general");
   const allSignals: RawSignal[] = [];
-  const connectorCounts: { connector: string; signalsFound: number }[] = [];
+  const connectorCounts: ConnectorCount[] = [];
+
+  if (configs.length === 0) {
+    return {
+      signalsFound: 0,
+      connectorCounts,
+      leadsUpserted: [] as { companyName: string; score: number }[],
+      note: "No enabled search_configs rows for vertical=general — add one on the Discovery page or in config/search-configs/vertical2.json.",
+    };
+  }
 
   for (const config of configs) {
     for (const connector of CONNECTORS) {
@@ -30,7 +39,12 @@ export async function runVertical2General() {
     console.log(
       "No signals found this run. Add rows to the search_configs table (or edit config/search-configs/vertical2.json) to widen coverage."
     );
-    return { signalsFound: 0, connectorCounts, leadsUpserted: [] as { companyName: string; score: number }[] };
+    return {
+      signalsFound: 0,
+      connectorCounts,
+      leadsUpserted: [] as { companyName: string; score: number }[],
+      note: "No matches this run for the configured keywords/industries.",
+    };
   }
 
   const results = await dedupeAndUpsert(allSignals, vertical2GeneralRules);

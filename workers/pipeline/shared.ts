@@ -18,6 +18,21 @@ export function isRunAsScript(importMetaUrl: string): boolean {
   }
 }
 
+/** One connector's contribution to a discovery run, plus why it found nothing when that's not obvious from the count alone. */
+export interface ConnectorCount {
+  connector: string;
+  signalsFound: number;
+  note?: string;
+}
+
+/** What a vertical run reports back to the Discovery page. `note` is a run-level explanation (e.g. no search configs at all), distinct from a per-connector one. */
+export interface RunResult {
+  signalsFound: number;
+  connectorCounts: ConnectorCount[];
+  leadsUpserted: { companyName: string; score: number }[];
+  note?: string;
+}
+
 export const VERTICAL_LEAD_TITLE: Record<Vertical, string> = {
   hiring: "Hiring signal opportunity",
   general: "General B2B/B2C opportunity",

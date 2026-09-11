@@ -53,15 +53,34 @@ export async function callGoogle({ apiKey, model, prompt }: ProviderCallParams):
   return text;
 }
 
-export async function callOpenRouter({ apiKey, model, prompt }: ProviderCallParams): Promise<string> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+/**
+ * Any OpenAI-compatible chat-completions proxy — same request/response shape
+ * as OpenAI itself, just a different base URL. OpenRouter and AgentRouter
+ * both fit this without needing their own bespoke parsing.
+ */
+export async function callOpenAICompatible({
+  apiKey,
+  baseUrl,
+  model,
+  prompt,
+}: ProviderCallParams & { baseUrl: string }): Promise<string> {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] }),
   });
-  if (!res.ok) throw new Error(`OpenRouter error ${res.status}: ${await parseErrorBody(res)}`);
+  if (!res.ok) throw new Error(`${baseUrl} error ${res.status}: ${await parseErrorBody(res)}`);
   const data = await res.json();
   const text = data.choices?.[0]?.message?.content;
-  if (typeof text !== "string") throw new Error("OpenRouter response did not include message text.");
+  if (typeof text !== "string") throw new Error(`${baseUrl} response did not include message text.`);
   return text;
+}
+
+export async function callOpenRouter(params: ProviderCallParams): Promise<string> {
+  return callOpenAICompatible({ ...params, baseUrl: "https://openrouter.ai/api/v1" });
+}
+
+/** https://agentrouter.org — OpenAI-compatible proxy in front of multiple hosted models under one key. */
+export async function callAgentRouter(params: ProviderCallParams): Promise<string> {
+  return callOpenAICompatible({ ...params, baseUrl: "https://agentrouter.org/v1" });
 }

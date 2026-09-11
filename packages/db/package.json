@@ -6,7 +6,8 @@
   "main": "client.ts",
   "exports": {
     ".": "./client.ts",
-    "./types.js": "./types.ts"
+    "./types.js": "./types.ts",
+    "./secrets.js": "./secrets.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.1"

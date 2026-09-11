@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 const SEARCH_URL = "https://api.peopledatalabs.com/v5/person/search";
@@ -57,9 +58,9 @@ function fullName(person: PdlPerson): string {
  * than throwing mid-pipeline.
  */
 export async function enrichContactsViaPdl(domain: string): Promise<RawContact[]> {
-  const apiKey = process.env.PDL_API_KEY;
+  const apiKey = process.env.PDL_API_KEY ?? (await getProviderSecret("pdl"));
   if (!apiKey) {
-    console.warn("[pdl] PDL_API_KEY not set, skipping enrichment.");
+    console.warn("[pdl] no API key (env or Integrations page), skipping enrichment.");
     return [];
   }
 

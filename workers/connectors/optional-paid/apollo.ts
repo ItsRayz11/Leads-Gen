@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 const SEARCH_URL = "https://api.apollo.io/api/v1/mixed_people/api_search";
@@ -57,9 +58,9 @@ export async function enrichContactViaApollo(
   domain: string,
   titles: string[] = DEFAULT_TITLES
 ): Promise<RawContact | null> {
-  const apiKey = process.env.APOLLO_API_KEY;
+  const apiKey = process.env.APOLLO_API_KEY ?? (await getProviderSecret("apollo"));
   if (!apiKey) {
-    console.warn("[apollo] APOLLO_API_KEY not set, skipping enrichment.");
+    console.warn("[apollo] no API key (env or Integrations page), skipping enrichment.");
     return null;
   }
 

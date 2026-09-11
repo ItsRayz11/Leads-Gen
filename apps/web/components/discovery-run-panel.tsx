@@ -14,8 +14,9 @@ const VERTICALS: { id: Vertical; label: string }[] = [
 
 type RunResult = {
   signalsFound: number;
-  connectorCounts: { connector: string; signalsFound: number }[];
+  connectorCounts: { connector: string; signalsFound: number; note?: string }[];
   leadsUpserted: { companyName: string; score: number }[];
+  note?: string;
 };
 
 export function DiscoveryRunPanel() {
@@ -65,15 +66,23 @@ export function DiscoveryRunPanel() {
       </p>
       {error && <p className="text-xs text-destructive">{error}</p>}
       {result && (
-        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+        <div
+          className={`rounded-md border p-3 text-xs ${
+            result.signalsFound === 0 ? "border-warning/40 bg-warning/10" : "border-border bg-muted/30"
+          }`}
+        >
           <p className="font-medium text-foreground">
-            {result.signalsFound} signal(s) found, {result.leadsUpserted.length} lead(s) upserted.
+            {result.signalsFound === 0
+              ? "No leads this run — see why below."
+              : `${result.signalsFound} signal(s) found, ${result.leadsUpserted.length} lead(s) upserted.`}
           </p>
+          {result.note && <p className="mt-1 text-warning">{result.note}</p>}
           {result.connectorCounts.length > 0 && (
             <ul className="mt-1 space-y-0.5 text-muted-foreground">
               {result.connectorCounts.map((c) => (
                 <li key={c.connector}>
                   {c.connector}: {c.signalsFound}
+                  {c.note && <span className="text-warning"> — {c.note}</span>}
                 </li>
               ))}
             </ul>

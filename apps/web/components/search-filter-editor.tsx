@@ -1,10 +1,17 @@
 "use client";
 
 import { Input, Select } from "./ui/input";
+import { MultiSelect } from "./ui/multi-select";
 import { Badge } from "./ui/badge";
 import {
   FILTER_LABELS,
   TIERS,
+  STATUSES,
+  FRESHNESS_VALUES,
+  INDUSTRIES,
+  COUNTRIES,
+  SIGNAL_TYPES,
+  COMPANY_SIZES,
   VERTICALS,
   type StructuredSearchFilters,
 } from "../lib/ai/search-filters";
@@ -12,27 +19,22 @@ import {
 const ARRAY_FIELDS: {
   key: Exclude<keyof StructuredSearchFilters, "minScore" | "vertical">;
   placeholder: string;
+  options: readonly string[];
+  allowCustom: boolean;
 }[] = [
-  { key: "keywords", placeholder: "community manager, discord" },
-  { key: "roleKeywords", placeholder: "head of community" },
-  { key: "industries", placeholder: "defi, gaming" },
-  { key: "countries", placeholder: "Singapore, Vietnam" },
-  { key: "regions", placeholder: "Southeast Asia" },
-  { key: "signalTypes", placeholder: "hiring, launch" },
-  { key: "serviceTypes", placeholder: "community management" },
-  { key: "companySizes", placeholder: "1-10, 11-50" },
-  { key: "tiers", placeholder: TIERS.join(", ") },
-  { key: "statuses", placeholder: "new, qualified" },
-  { key: "freshness", placeholder: "fresh, recent" },
-  { key: "excludeKeywords", placeholder: "internship, unpaid" },
+  { key: "keywords", placeholder: "community manager, discord", options: [], allowCustom: true },
+  { key: "roleKeywords", placeholder: "head of community", options: [], allowCustom: true },
+  { key: "industries", placeholder: "defi, gaming", options: INDUSTRIES, allowCustom: true },
+  { key: "countries", placeholder: "Singapore, Vietnam", options: COUNTRIES, allowCustom: true },
+  { key: "regions", placeholder: "Southeast Asia", options: [], allowCustom: true },
+  { key: "signalTypes", placeholder: "hiring, launch", options: SIGNAL_TYPES, allowCustom: true },
+  { key: "serviceTypes", placeholder: "community management", options: [], allowCustom: true },
+  { key: "companySizes", placeholder: "1-10, 11-50", options: COMPANY_SIZES, allowCustom: true },
+  { key: "tiers", placeholder: TIERS.join(", "), options: TIERS, allowCustom: false },
+  { key: "statuses", placeholder: "new, qualified", options: STATUSES, allowCustom: false },
+  { key: "freshness", placeholder: "fresh, recent", options: FRESHNESS_VALUES, allowCustom: false },
+  { key: "excludeKeywords", placeholder: "internship, unpaid", options: [], allowCustom: true },
 ];
-
-function parseList(value: string): string[] {
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 /**
  * Renders interpreted filters as editable fields. The interpretation is a
@@ -67,10 +69,12 @@ export function SearchFilterEditor({
         {ARRAY_FIELDS.map((field) => (
           <div key={field.key} className="space-y-1">
             <label className="text-xs text-muted-foreground">{FILTER_LABELS[field.key]}</label>
-            <Input
-              value={filters[field.key].join(", ")}
+            <MultiSelect
+              options={field.options}
+              allowCustom={field.allowCustom}
+              value={filters[field.key]}
               placeholder={field.placeholder}
-              onChange={(e) => set(field.key, parseList(e.target.value))}
+              onChange={(next) => set(field.key, next)}
             />
           </div>
         ))}
@@ -105,8 +109,9 @@ export function SearchFilterEditor({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Comma-separated. Every field maps to a real column — keywords match the lead title, signal summary and
-        qualification notes; exclusions match the title only.
+        Click a field to pick from its list, or type and press Enter to add your own. Every field maps to a real
+        column — keywords match the lead title, signal summary and qualification notes; exclusions match the title
+        only.
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { buildRawSignal, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
@@ -24,9 +25,9 @@ export const web3CareerConnector: SourceConnector = {
   enabled: true,
   requiresApiKey: true,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const token = process.env.WEB3_CAREER_API_TOKEN;
+    const token = process.env.WEB3_CAREER_API_TOKEN ?? (await getProviderSecret("web3_career"));
     if (!token) {
-      console.warn("[web3career] WEB3_CAREER_API_TOKEN not set, skipping connector.");
+      console.warn("[web3career] no API token (env or Integrations page), skipping connector.");
       return [];
     }
 

@@ -1,4 +1,5 @@
 import type { RawContact } from "@leads/core";
+import { getProviderSecret } from "@leads/db/secrets.js";
 import { isProviderEnabled } from "../../provider-gate.js";
 
 const DOMAIN_SEARCH_URL = "https://api.prospeo.io/domain-search";
@@ -64,9 +65,9 @@ function fullName(entry: ProspeoEmail): string {
  * workspace does not store guessed contact details.
  */
 export async function enrichContactsViaProspeo(domain: string): Promise<RawContact[]> {
-  const apiKey = process.env.PROSPEO_API_KEY;
+  const apiKey = process.env.PROSPEO_API_KEY ?? (await getProviderSecret("prospeo"));
   if (!apiKey) {
-    console.warn("[prospeo] PROSPEO_API_KEY not set, skipping enrichment.");
+    console.warn("[prospeo] no API key (env or Integrations page), skipping enrichment.");
     return [];
   }
 

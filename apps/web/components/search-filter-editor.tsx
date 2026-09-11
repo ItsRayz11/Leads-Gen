@@ -3,38 +3,18 @@
 import { Input, Select } from "./ui/input";
 import { MultiSelect } from "./ui/multi-select";
 import { Badge } from "./ui/badge";
+import { useFilterOptions } from "../lib/hooks/use-filter-options";
 import {
   FILTER_LABELS,
   TIERS,
   STATUSES,
   FRESHNESS_VALUES,
-  INDUSTRIES,
-  COUNTRIES,
   SIGNAL_TYPES,
-  COMPANY_SIZES,
   VERTICALS,
   type StructuredSearchFilters,
 } from "../lib/ai/search-filters";
 
-const ARRAY_FIELDS: {
-  key: Exclude<keyof StructuredSearchFilters, "minScore" | "vertical">;
-  placeholder: string;
-  options: readonly string[];
-  allowCustom: boolean;
-}[] = [
-  { key: "keywords", placeholder: "community manager, discord", options: [], allowCustom: true },
-  { key: "roleKeywords", placeholder: "head of community", options: [], allowCustom: true },
-  { key: "industries", placeholder: "defi, gaming", options: INDUSTRIES, allowCustom: true },
-  { key: "countries", placeholder: "Singapore, Vietnam", options: COUNTRIES, allowCustom: true },
-  { key: "regions", placeholder: "Southeast Asia", options: [], allowCustom: true },
-  { key: "signalTypes", placeholder: "hiring, launch", options: SIGNAL_TYPES, allowCustom: true },
-  { key: "serviceTypes", placeholder: "community management", options: [], allowCustom: true },
-  { key: "companySizes", placeholder: "1-10, 11-50", options: COMPANY_SIZES, allowCustom: true },
-  { key: "tiers", placeholder: TIERS.join(", "), options: TIERS, allowCustom: false },
-  { key: "statuses", placeholder: "new, qualified", options: STATUSES, allowCustom: false },
-  { key: "freshness", placeholder: "fresh, recent", options: FRESHNESS_VALUES, allowCustom: false },
-  { key: "excludeKeywords", placeholder: "internship, unpaid", options: [], allowCustom: true },
-];
+type ArrayFieldKey = Exclude<keyof StructuredSearchFilters, "minScore" | "vertical">;
 
 /**
  * Renders interpreted filters as editable fields. The interpretation is a
@@ -56,6 +36,72 @@ export function SearchFilterEditor({
     onChange({ ...filters, [key]: value });
   }
 
+  const liveOptions = useFilterOptions();
+
+  const arrayFields: {
+    key: ArrayFieldKey;
+    placeholder: string;
+    options: readonly string[];
+    allowCustom: boolean;
+    /** Whether `options` still depends on the /api/filter-options fetch resolving. */
+    liveBacked?: boolean;
+  }[] = [
+    { key: "keywords", placeholder: "community manager, discord", options: [], allowCustom: true },
+    {
+      key: "roleKeywords",
+      placeholder: "head of community",
+      options: liveOptions.roleKeywords,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    {
+      key: "industries",
+      placeholder: "defi, gaming",
+      options: liveOptions.industries,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    {
+      key: "countries",
+      placeholder: "Singapore, Vietnam",
+      options: liveOptions.countries,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    {
+      key: "regions",
+      placeholder: "Southeast Asia",
+      options: liveOptions.regions,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    { key: "signalTypes", placeholder: "hiring, launch", options: SIGNAL_TYPES, allowCustom: true },
+    {
+      key: "serviceTypes",
+      placeholder: "community management",
+      options: liveOptions.serviceTypes,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    {
+      key: "companySizes",
+      placeholder: "1-10, 11-50",
+      options: liveOptions.companySizes,
+      allowCustom: true,
+      liveBacked: true,
+    },
+    { key: "tiers", placeholder: TIERS.join(", "), options: TIERS, allowCustom: false },
+    { key: "statuses", placeholder: "new, qualified", options: STATUSES, allowCustom: false },
+    { key: "freshness", placeholder: "fresh, recent", options: FRESHNESS_VALUES, allowCustom: false },
+    {
+      key: "excludeKeywords",
+      placeholder: "internship, unpaid",
+      options: liveOptions.excludeKeywords,
+      allowCustom: true,
+      liveBacked: true,
+    },
+  ];
+
   return (
     <div className="space-y-3 rounded-md border border-border p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -64,14 +110,20 @@ export function SearchFilterEditor({
         {source === "keyword_fallback" && <Badge variant="warning">Keyword fallback</Badge>}
       </div>
       {note && <p className="text-xs text-warning">{note}</p>}
+      {liveOptions.error && (
+        <p className="text-xs text-muted-foreground">
+          Couldn&apos;t load live option values ({liveOptions.error}) — showing the built-in list only.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {ARRAY_FIELDS.map((field) => (
+        {arrayFields.map((field) => (
           <div key={field.key} className="space-y-1">
             <label className="text-xs text-muted-foreground">{FILTER_LABELS[field.key]}</label>
             <MultiSelect
               options={field.options}
               allowCustom={field.allowCustom}
+              loading={Boolean(field.liveBacked) && liveOptions.loading}
               value={filters[field.key]}
               placeholder={field.placeholder}
               onChange={(next) => set(field.key, next)}

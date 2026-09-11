@@ -1,11 +1,12 @@
 import { listSearchConfigs } from "../../../lib/data/discovery";
+import { getUseCaseStatus } from "../../../lib/data/ai-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { SavedSearchForm } from "../../../components/saved-search-form";
 import { DiscoveryRunPanel } from "../../../components/discovery-run-panel";
 
 export default async function DiscoveryPage() {
-  const configs = await listSearchConfigs();
+  const [configs, aiStatus] = await Promise.all([listSearchConfigs(), getUseCaseStatus("search_interpretation")]);
 
   return (
     <div className="space-y-4">
@@ -31,7 +32,7 @@ export default async function DiscoveryPage() {
           <CardTitle>New search</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <SavedSearchForm />
+          <SavedSearchForm aiStatus={aiStatus} />
         </CardContent>
       </Card>
 

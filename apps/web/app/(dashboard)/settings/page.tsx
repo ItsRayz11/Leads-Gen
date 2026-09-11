@@ -1,8 +1,15 @@
-import { listAiProviderSettings } from "../../../lib/data/ai-settings";
+import {
+  AI_USE_CASES,
+  AI_USE_CASE_LABELS,
+  listAiProviderSettings,
+  resolveUseCaseStatus,
+} from "../../../lib/data/ai-settings";
+import { getProviderKeyStatus } from "../../../lib/data/integrations";
 import { listScoringConfig } from "../../../lib/data/scoring-config";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { AiProviderSettingsForm } from "../../../components/ai-provider-settings-form";
+import { TaskRoutingForm } from "../../../components/task-routing-form";
 import { TestConnectionButton } from "../../../components/test-connection-button";
 import { ScoringConfigForm } from "../../../components/scoring-config-form";
 import { formatDateTime } from "../../../lib/utils";
@@ -10,7 +17,11 @@ import { VERTICAL_LABELS } from "../../../lib/lead-options";
 import type { ScoreDimension } from "@leads/core";
 
 export default async function SettingsPage() {
-  const [settings, scoringConfig] = await Promise.all([listAiProviderSettings(), listScoringConfig()]);
+  const [settings, scoringConfig, keyStatus] = await Promise.all([
+    listAiProviderSettings(),
+    listScoringConfig(),
+    getProviderKeyStatus(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -20,18 +31,37 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AI Providers</CardTitle>
+          <CardTitle>AI task routing</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Three use cases are actually called by this app: search interpretation (turning a natural-language
+            Discovery search into structured filters), lead qualification (a lead&apos;s &quot;Assess with AI&quot;
+            button), and outreach drafting (the per-message &quot;Generate with AI&quot; button). Adding a key on the{" "}
+            <span className="text-foreground">Integrations</span> page only stores the key — a task only uses AI
+            once you assign a provider to it here.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {AI_USE_CASES.map((useCase) => (
+            <TaskRoutingForm
+              key={useCase}
+              useCase={useCase}
+              label={AI_USE_CASE_LABELS[useCase]}
+              status={resolveUseCaseStatus(useCase, settings, keyStatus)}
+              keyStatus={keyStatus}
+            />
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Providers — all rows</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Every row behind the task routing above, plus room to add extra fallback providers per use case
+            (lower priority number = tried first).
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            Three use cases are actually called by this app:{" "}
-            <code className="text-foreground">outreach_drafting</code> (the per-message "Generate with AI" button),{" "}
-            <code className="text-foreground">lead_qualification</code> (a lead's "Assess with AI" button), and{" "}
-            <code className="text-foreground">search_interpretation</code> (turning a natural-language search into
-            structured filters). Each is resolved independently by priority, and any use case without an enabled row
-            whose API key is present in the environment degrades to an honest error or a keyword fallback rather than
-            a fabricated result.
-          </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead>

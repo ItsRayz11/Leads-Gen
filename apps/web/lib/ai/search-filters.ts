@@ -168,6 +168,90 @@ export const COUNTRIES = [
   "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
 ] as const;
 
+/**
+ * Curated seed lists for the fields that have no fixed database enum
+ * (regions/service types/roles/exclusions are free text on `companies` and
+ * `leads` — see lib/data/leads.ts). These are a starting taxonomy, not a
+ * closed one: /api/filter-options merges them with whatever values already
+ * exist in the database, and every field here still allows a typed custom
+ * value through MultiSelect's `allowCustom`.
+ */
+export const REGIONS = [
+  "Southeast Asia",
+  "East Asia",
+  "South Asia",
+  "Middle East",
+  "MENA",
+  "GCC",
+  "North America",
+  "Latin America",
+  "Western Europe",
+  "Eastern Europe",
+  "Nordics",
+  "Sub-Saharan Africa",
+  "North Africa",
+  "Oceania",
+  "CIS",
+  "Global / Remote",
+] as const;
+
+export const ROLE_SUGGESTIONS = [
+  "Head of Community",
+  "Community Manager",
+  "Community Lead",
+  "Discord Moderator",
+  "Social Media Manager",
+  "Head of Marketing",
+  "Marketing Manager",
+  "Growth Manager",
+  "Growth Lead",
+  "Performance Marketing Manager",
+  "KOL Manager",
+  "Influencer Marketing Manager",
+  "Content Manager",
+  "PR Manager",
+  "CMO",
+  "Chief Marketing Officer",
+  "Founder",
+  "Co-Founder",
+  "CEO",
+  "Business Development Manager",
+  "Partnerships Manager",
+  "Recruiter",
+  "Talent Acquisition Manager",
+  "Operations Manager",
+] as const;
+
+export const SERVICE_TYPE_SUGGESTIONS = [
+  "Community Management",
+  "Discord Management",
+  "Telegram Management",
+  "Social Media Management",
+  "KOL Marketing",
+  "Influencer Marketing",
+  "Content Marketing",
+  "Digital Marketing",
+  "Performance Marketing",
+  "Growth Marketing",
+  "Public Relations",
+  "Marketing Consulting",
+  "Bitget Card Affiliate",
+  "Crypto Marketing",
+  "Web3 Marketing",
+] as const;
+
+export const EXCLUDE_SUGGESTIONS = [
+  "internship",
+  "unpaid",
+  "volunteer",
+  "intern",
+  "entry level",
+  "junior",
+  "freelance",
+  "contract",
+  "part time",
+] as const;
+
 export const STATUSES = [
   "new",
   "researching",

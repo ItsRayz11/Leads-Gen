@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Input, Select, Textarea } from "./ui/input";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { SearchFilterEditor } from "./search-filter-editor";
 import {
   EMPTY_FILTERS,
@@ -11,6 +12,7 @@ import {
   isFiltersEmpty,
   type StructuredSearchFilters,
 } from "../lib/ai/search-filters";
+import type { UseCaseStatus } from "../lib/data/ai-settings";
 
 type InterpretSource = "ai" | "keyword_fallback";
 
@@ -28,7 +30,7 @@ interface InterpretResponse {
  * filters, let them be reviewed and corrected, then save. Saving raw text
  * alone would leave a search nothing can actually run.
  */
-export function SavedSearchForm() {
+export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
   const [queryText, setQueryText] = useState("");
   const [vertical, setVertical] = useState("");
   const [name, setName] = useState("");
@@ -124,6 +126,16 @@ export function SavedSearchForm() {
         <Button type="button" size="sm" disabled={interpreting || !queryText.trim()} onClick={onInterpret}>
           {interpreting ? "Interpreting…" : "Interpret into filters"}
         </Button>
+        {aiStatus &&
+          (aiStatus.ready ? (
+            <Badge variant="success">AI ready — {aiStatus.provider}{aiStatus.model ? ` · ${aiStatus.model}` : ""}</Badge>
+          ) : aiStatus.reason === "no_key" ? (
+            <Badge variant="warning">
+              {aiStatus.provider} is assigned but has no API key — will use keyword fallback
+            </Badge>
+          ) : (
+            <Badge variant="outline">No AI provider assigned — will use keyword fallback</Badge>
+          ))}
         {error && <span className="text-xs text-destructive">{error}</span>}
       </div>
 

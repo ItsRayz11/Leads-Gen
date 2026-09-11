@@ -19,6 +19,7 @@ export function MultiSelect({
   onChange,
   placeholder,
   allowCustom = true,
+  loading = false,
   className,
 }: {
   options: readonly string[];
@@ -26,6 +27,8 @@ export function MultiSelect({
   onChange: (next: string[]) => void;
   placeholder?: string;
   allowCustom?: boolean;
+  /** Shows a "Loading options…" row instead of an empty dropdown while options are still being fetched. */
+  loading?: boolean;
   className?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -109,9 +112,12 @@ export function MultiSelect({
         />
       </div>
 
-      {open && (filtered.length > 0 || (query.trim() && allowCustom && !exactMatch)) && (
+      {open && (loading || filtered.length > 0 || (query.trim() && allowCustom && !exactMatch)) && (
         <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-card shadow-md">
-          {query.trim() && allowCustom && !exactMatch && (
+          {loading && (
+            <div className="px-3 py-1.5 text-sm text-muted-foreground">Loading options…</div>
+          )}
+          {!loading && query.trim() && allowCustom && !exactMatch && (
             <button
               type="button"
               onClick={() => add(query)}

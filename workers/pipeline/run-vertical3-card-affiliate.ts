@@ -1,13 +1,11 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { websiteEnrichmentConnector } from "../connectors/agencies/website-enrichment.js";
 import { twitterAgencySignalsConnector } from "../connectors/twitter/agency-signals.js";
-import { getProviderSecret } from "@leads/db/secrets.js";
-import { isProviderEnabled } from "../provider-gate.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical3CardAffiliateRules } from "../scoring/rules/vertical3-card-affiliate.js";
 import { isRunAsScript, runStatus, type RunResult } from "./shared.js";
 import { runConnectors, safeReporter, type ProgressReporter } from "./progress.js";
-import { readJsonConfig } from "../config-files.js";
+import { getAllProviderStatuses } from "./provider-status.js";
 
 const CONNECTORS: SourceConnector[] = [
   websiteEnrichmentConnector,
@@ -16,20 +14,13 @@ const CONNECTORS: SourceConnector[] = [
 
 const config: SearchConfig = { vertical: "card_affiliate" };
 
-/** Why a connector found nothing, when the reason isn't "no matches this run" — surfaced on the Discovery page instead of a silent zero. */
+/**
+ * Why a connector found nothing — see the identical comment in
+ * run-vertical1-hiring.ts; both defer to the shared `provider-status.ts`.
+ */
 async function zeroResultNote(connectorName: string): Promise<string | undefined> {
-  if (connectorName === "agency-website-enrichment") {
-    const loaded = readJsonConfig<{ agencies: unknown[] }>("config/target-companies/agencies.json");
-    if (!loaded) return "config/target-companies/agencies.json is not available in this deployment";
-    if (loaded.agencies.length === 0) return "no agencies seeded in config/target-companies/agencies.json";
-  }
-  if (connectorName === "twitter-agency-signals") {
-    if (!process.env.TWITTERAPI_IO_KEY && !(await getProviderSecret("twitterapi_io"))) {
-      return "no API key configured — add one on the Integrations page";
-    }
-    if (!(await isProviderEnabled("twitterapi_io"))) return "switched off on the Integrations page";
-  }
-  return undefined;
+  const status = (await getAllProviderStatuses()).find((s) => s.connector === connectorName);
+  return status && !status.configured ? status.reason : undefined;
 }
 
 export async function runVertical3CardAffiliate(onProgress?: ProgressReporter): Promise<RunResult> {

@@ -54,6 +54,7 @@ const STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
   not_a_fit: "destructive",
   lost: "destructive",
   on_hold: "warning",
+  archived: "outline",
 };
 
 export function StatusBadge({ status }: { status: string }) {

@@ -1,0 +1,30 @@
+name: Enrich contacts
+
+on:
+  schedule:
+    - cron: "30 8 * * *" # daily at 08:30 UTC, after Vertical 2 (08:00) has had time to land
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - run: npm run enrich:contacts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Each provider below self-disables when its key is absent (see
+          # workers/connectors/optional-paid/*.ts), so this step is safe to
+          # run even with none of them configured yet -- it just enriches 0.
+          HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
+          PROSPEO_API_KEY: ${{ secrets.PROSPEO_API_KEY }}
+          PDL_API_KEY: ${{ secrets.PDL_API_KEY }}
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}

@@ -165,6 +165,12 @@ export function SearchFilterEditor({
         column — keywords match the lead title, signal summary and qualification notes; exclusions match the title
         only.
       </p>
+      <p className="text-xs text-muted-foreground">
+        Not every source can act on every field — Hacker News, for instance, has no industry or location data, so
+        it treats Industry as an extra keyword and ignores Geography entirely rather than pretending to filter on
+        it. See the <span className="text-foreground">Sources</span> panel on this page for what each connector
+        actually supports before running a search.
+      </p>
     </div>
   );
 }

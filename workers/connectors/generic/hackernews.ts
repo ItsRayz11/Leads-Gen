@@ -100,6 +100,11 @@ export const hackerNewsConnector: SourceConnector = {
           sourceConnector: "hackernews",
           vertical: "general",
           projectName: extractProjectName(hit.title),
+          // The linked project's own site, when the post has one. This is
+          // what lets dedupeAndUpsert derive a domain and makes the company
+          // eligible for contact enrichment (which requires a website) --
+          // previously only carried in meta.externalUrl and never read.
+          website: hit.url ?? undefined,
           signalText: hit.title,
           evidenceUrl: `https://news.ycombinator.com/item?id=${hit.objectID}`,
           discoveredAt: new Date(),

@@ -30,24 +30,62 @@ export interface PipelineColumn {
   leads: PipelineCard[];
 }
 
+/**
+ * Statuses that exist but aren't tracked as active-funnel columns: the six
+ * terminal/parked outcomes, plus `archived` (soft-deleted leads, see
+ * migration 0012). The board used to just filter these out with no trace,
+ * which reads as "my leads disappeared" rather than "these are done/hidden".
+ */
+const HIDDEN_STATUSES = [
+  "no_response",
+  "rejected",
+  "not_interested",
+  "not_a_fit",
+  "lost",
+  "on_hold",
+  "archived",
+] as const;
+
+export interface HiddenStatusCount {
+  status: (typeof HIDDEN_STATUSES)[number];
+  count: number;
+}
+
 const PIPELINE_SELECT = `
   id, title, status, tier, score, next_follow_up_at,
   company:companies!leads_company_id_fkey ( name )
 `;
 
-export async function getPipelineBoard(): Promise<PipelineColumn[]> {
+export async function getPipelineBoard(): Promise<{
+  columns: PipelineColumn[];
+  hidden: HiddenStatusCount[];
+}> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("leads")
-    .select(PIPELINE_SELECT)
-    .in("status", PIPELINE_STATUSES as unknown as LeadStatus[])
-    .order("score", { ascending: false });
+  const [board, hiddenCounts] = await Promise.all([
+    supabase
+      .from("leads")
+      .select(PIPELINE_SELECT)
+      .in("status", PIPELINE_STATUSES as unknown as LeadStatus[])
+      .order("score", { ascending: false }),
+    supabase.from("leads").select("status").in("status", HIDDEN_STATUSES as unknown as LeadStatus[]),
+  ]);
 
-  if (error) throw error;
-  const leads = (data ?? []) as unknown as PipelineCard[];
+  if (board.error) throw board.error;
+  if (hiddenCounts.error) throw hiddenCounts.error;
 
-  return PIPELINE_STATUSES.map((status) => ({
+  const leads = (board.data ?? []) as unknown as PipelineCard[];
+  const hiddenRows = hiddenCounts.data ?? [];
+
+  const hidden = HIDDEN_STATUSES.map((status) => ({
     status,
-    leads: leads.filter((lead) => lead.status === status),
-  }));
+    count: hiddenRows.filter((row) => row.status === status).length,
+  })).filter((row) => row.count > 0);
+
+  return {
+    columns: PIPELINE_STATUSES.map((status) => ({
+      status,
+      leads: leads.filter((lead) => lead.status === status),
+    })),
+    hidden,
+  };
 }

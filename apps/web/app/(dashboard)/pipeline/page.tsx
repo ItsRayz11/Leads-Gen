@@ -2,7 +2,7 @@ import { getPipelineBoard } from "../../../lib/data/pipeline";
 import { PipelineBoard } from "../../../components/pipeline-board";
 
 export default async function PipelinePage() {
-  const columns = await getPipelineBoard();
+  const { columns, hidden } = await getPipelineBoard();
 
   return (
     <div className="space-y-4">
@@ -13,7 +13,7 @@ export default async function PipelinePage() {
         </p>
       </div>
 
-      <PipelineBoard columns={columns} />
+      <PipelineBoard columns={columns} hidden={hidden} />
     </div>
   );
 }

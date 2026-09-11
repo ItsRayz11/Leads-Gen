@@ -237,7 +237,7 @@ export function LeadsTable({
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search lead titles…"
+            placeholder="Search companies or leads…"
             className="h-8 w-56 text-xs"
           />
           <Button type="submit" variant="secondary" size="sm">

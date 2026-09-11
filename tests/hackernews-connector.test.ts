@@ -122,6 +122,30 @@ describe("hackerNewsConnector result handling", () => {
     expect(signals).toHaveLength(1);
   });
 
+  it("carries the post's external link as the signal's website", async () => {
+    stubHits([
+      {
+        objectID: "43",
+        title: "Show HN: Pinch – live audio dubbing",
+        url: "https://pinch.now",
+        author: "a",
+        created_at: new Date().toISOString(),
+        points: 5,
+        num_comments: 1,
+      },
+    ]);
+    const signals = await hackerNewsConnector.fetch({ vertical: "general", keywords: ["Pinch"] } as SearchConfig);
+    expect(signals[0].website).toBe("https://pinch.now");
+  });
+
+  it("leaves website unset when the post has no external link", async () => {
+    stubHits([
+      { objectID: "44", title: "Ask HN: No link here", url: null, author: "a", created_at: new Date().toISOString(), points: 5, num_comments: 1 },
+    ]);
+    const signals = await hackerNewsConnector.fetch({ vertical: "general", keywords: ["No link"] } as SearchConfig);
+    expect(signals[0].website).toBeUndefined();
+  });
+
   it("records a citable evidence URL for every signal", async () => {
     stubHits([
       { objectID: "42", title: "Launch HN: Cited Co (YC S26)", url: null, author: "a", created_at: new Date().toISOString(), points: 5, num_comments: 1 },

@@ -7,7 +7,7 @@ import { TierBadge } from "./ui/badge";
 import { StatusSelect } from "./lead/status-select";
 import { formatDate } from "../lib/utils";
 import { moveLeadBetweenColumns } from "../lib/pipeline-transitions";
-import type { PipelineColumn, PipelineStatus } from "../lib/data/pipeline";
+import type { HiddenStatusCount, PipelineColumn, PipelineStatus } from "../lib/data/pipeline";
 
 const COLUMN_TITLES: Record<string, string> = {
   new: "New",
@@ -21,7 +21,23 @@ const COLUMN_TITLES: Record<string, string> = {
   won: "Won",
 };
 
-export function PipelineBoard({ columns: initialColumns }: { columns: PipelineColumn[] }) {
+const HIDDEN_STATUS_LABELS: Record<string, string> = {
+  no_response: "no response",
+  rejected: "rejected",
+  not_interested: "not interested",
+  not_a_fit: "not a fit",
+  lost: "lost",
+  on_hold: "on hold",
+  archived: "archived",
+};
+
+export function PipelineBoard({
+  columns: initialColumns,
+  hidden = [],
+}: {
+  columns: PipelineColumn[];
+  hidden?: HiddenStatusCount[];
+}) {
   const [columns, setColumns] = useState(initialColumns);
   const [dragLeadId, setDragLeadId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<PipelineStatus | null>(null);
@@ -54,9 +70,25 @@ export function PipelineBoard({ columns: initialColumns }: { columns: PipelineCo
     setDragLeadId(null);
   }
 
+  const hiddenTotal = hidden.reduce((sum, h) => sum + h.count, 0);
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
-      {columns.map((column) => (
+    <div className="space-y-2">
+      {hiddenTotal > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {hiddenTotal} lead{hiddenTotal === 1 ? "" : "s"} not shown here (
+          {hidden
+            .map((h) => `${h.count} ${HIDDEN_STATUS_LABELS[h.status] ?? h.status}`)
+            .join(", ")}
+          ) — these won&apos;t reopen automatically.{" "}
+          <Link href="/leads" className="text-primary hover:underline">
+            View in All Leads
+          </Link>
+          .
+        </p>
+      )}
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {columns.map((column) => (
         <div
           key={column.status}
           className="w-64 shrink-0"
@@ -117,6 +149,7 @@ export function PipelineBoard({ columns: initialColumns }: { columns: PipelineCo
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

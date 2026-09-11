@@ -1,12 +1,18 @@
 import { discoveryWriteBlocker, listSearchConfigs } from "../../../lib/data/discovery";
 import { getUseCaseStatus } from "../../../lib/data/ai-settings";
+import { listProviderStatuses } from "../../../lib/data/providers";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { SavedSearchForm } from "../../../components/saved-search-form";
 import { DiscoveryRunPanel } from "../../../components/discovery-run-panel";
+import { ProviderStatusPanel } from "../../../components/provider-status-panel";
 
 export default async function DiscoveryPage() {
-  const [configs, aiStatus] = await Promise.all([listSearchConfigs(), getUseCaseStatus("search_interpretation")]);
+  const [configs, aiStatus, providerStatuses] = await Promise.all([
+    listSearchConfigs(),
+    getUseCaseStatus("search_interpretation"),
+    listProviderStatuses(),
+  ]);
   const writeBlocker = discoveryWriteBlocker();
 
   return (
@@ -18,6 +24,20 @@ export default async function DiscoveryPage() {
           save. Run a vertical's connectors right now below, or let the scheduled GitHub Action handle it.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sources</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 pt-0">
+          <p className="text-sm text-muted-foreground">
+            What&apos;s actually configured right now, and what each source can and can&apos;t filter on. A filter
+            marked ✕ here has no effect for that source — it isn&apos;t silently dropped, it just can&apos;t be
+            acted on by that connector.
+          </p>
+          <ProviderStatusPanel statuses={providerStatuses} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

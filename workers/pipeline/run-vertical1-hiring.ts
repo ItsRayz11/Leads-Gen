@@ -5,13 +5,11 @@ import { ashbyConnector } from "../connectors/job-boards/ashby.js";
 import { cryptoJobsListConnector } from "../connectors/job-boards/cryptojobslist.js";
 import { web3CareerConnector } from "../connectors/job-boards/web3career.js";
 import { twitterHiringSignalsConnector } from "../connectors/twitter/hiring-signals.js";
-import { getProviderSecret } from "@leads/db/secrets.js";
-import { isProviderEnabled } from "../provider-gate.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical1HiringRules } from "../scoring/rules/vertical1-hiring.js";
 import { isRunAsScript, runStatus, type RunResult } from "./shared.js";
 import { runConnectors, safeReporter, type ProgressReporter } from "./progress.js";
-import { readJsonConfig } from "../config-files.js";
+import { getAllProviderStatuses } from "./provider-status.js";
 
 const CONNECTORS: SourceConnector[] = [
   greenhouseConnector,
@@ -25,53 +23,17 @@ const CONNECTORS: SourceConnector[] = [
 const config: SearchConfig = { vertical: "hiring" };
 
 /**
- * The board-token config each job-board connector reads, and the field in it
- * that lists the companies to check. These APIs have no "search everything"
- * endpoint — they only return jobs for companies you name — so an empty list
- * means the connector had nothing to do, not that nobody is hiring.
+ * Why a connector found nothing, when the reason isn't "no matches this
+ * run" — surfaced on the Discovery page instead of a silent zero. Backed by
+ * `provider-status.ts`, the same source the Sources panel reads, so this
+ * never drifts out of sync with what the UI tells the user beforehand.
  */
-const BOARD_CONFIGS: Record<string, { file: string; field: string; example: string }> = {
-  greenhouse: {
-    file: "config/target-companies/greenhouse.json",
-    field: "boardTokens",
-    example: "the {token} in job-boards.greenhouse.io/{token}",
-  },
-  lever: {
-    file: "config/target-companies/lever.json",
-    field: "companySlugs",
-    example: "the {slug} in jobs.lever.co/{slug}",
-  },
-  ashby: {
-    file: "config/target-companies/ashby.json",
-    field: "boardNames",
-    example: "the {board} in jobs.ashbyhq.com/{board}",
-  },
-};
-
-/** Why a connector found nothing, when the reason isn't "no matches this run" — surfaced on the Discovery page instead of a silent zero. */
 async function zeroResultNote(connectorName: string): Promise<string | undefined> {
-  const board = BOARD_CONFIGS[connectorName];
-  if (board) {
-    const loaded = readJsonConfig<Record<string, unknown>>(board.file);
-    if (!loaded) return `${board.file} is not available in this deployment`;
-    const companies = loaded[board.field];
-    if (!Array.isArray(companies) || companies.length === 0) {
-      return `no companies to check — add ${board.field} (${board.example}) to ${board.file}`;
-    }
-  }
   if (connectorName === "cryptojobslist") {
     return "the public feed returned no listings matching the target roles right now";
   }
-  if (connectorName === "web3career" && !process.env.WEB3_CAREER_API_TOKEN && !(await getProviderSecret("web3_career"))) {
-    return "no API token configured — add one on the Integrations page";
-  }
-  if (connectorName === "twitter-hiring-signals") {
-    if (!process.env.TWITTERAPI_IO_KEY && !(await getProviderSecret("twitterapi_io"))) {
-      return "no API key configured — add one on the Integrations page";
-    }
-    if (!(await isProviderEnabled("twitterapi_io"))) return "switched off on the Integrations page";
-  }
-  return undefined;
+  const status = (await getAllProviderStatuses()).find((s) => s.connector === connectorName);
+  return status && !status.configured ? status.reason : undefined;
 }
 
 export async function runVertical1Hiring(onProgress?: ProgressReporter): Promise<RunResult> {

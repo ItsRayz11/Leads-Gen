@@ -103,7 +103,29 @@ export async function listLeads(
   if (filters.status) query = query.eq("status", filters.status as LeadStatus);
   if (filters.tier) query = query.eq("tier", filters.tier as LeadTier);
   if (filters.vertical) query = query.eq("vertical", filters.vertical as LeadVertical);
-  if (filters.q) query = query.ilike("title", `%${filters.q}%`);
+  if (filters.q) {
+    // `title` is one of only 3 fixed per-vertical strings (see
+    // VERTICAL_LEAD_TITLE), so it never contains a company name or keyword --
+    // searching only that column made this box find almost nothing a user
+    // actually typed. Also match the company's name (looked up separately,
+    // since PostgREST can't OR a base-table and related-table column in one
+    // clause) and the free-text fields that do carry real content.
+    const safeQ = sanitizeTerm(filters.q);
+    if (safeQ) {
+      const { data: matchingCompanies } = await supabase
+        .from("companies")
+        .select("id")
+        .ilike("name", `%${safeQ}%`);
+      const companyIds = (matchingCompanies ?? []).map((c) => c.id);
+      const clauses = [
+        `title.ilike.%${safeQ}%`,
+        `buying_signal_summary.ilike.%${safeQ}%`,
+        `service_type.ilike.%${safeQ}%`,
+      ];
+      if (companyIds.length > 0) clauses.push(`company_id.in.(${companyIds.join(",")})`);
+      query = query.or(clauses.join(","));
+    }
+  }
 
   if (structured.vertical) query = query.eq("vertical", structured.vertical as LeadVertical);
   if (structured.tiers.length > 0) query = query.in("tier", structured.tiers as LeadTier[]);

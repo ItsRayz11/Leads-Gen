@@ -19,6 +19,12 @@ const nextConfig = {
       "../../config/target-companies/*.json",
       "../../config/search-configs/*.json",
     ],
+    // The Discovery page renders the Sources panel (getAllProviderStatuses),
+    // which reads the same job-board/agency config files at render time.
+    "/discovery": [
+      "../../config/target-companies/*.json",
+      "../../config/search-configs/*.json",
+    ],
   },
   webpack: (config) => {
     // The workers package uses NodeNext-style ".js" specifiers that point at

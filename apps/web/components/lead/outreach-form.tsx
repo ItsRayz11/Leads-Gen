@@ -19,22 +19,37 @@ export function OutreachForm({ leadId }: { leadId: string }) {
   const [draftType, setDraftType] = useState<DraftType>("initial");
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/outreach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leadId, channel, recipient, message, followUpDate, status, result }),
-    });
-    setMessage("");
-    setRecipient("");
-    setFollowUpDate("");
-    setResult("");
-    setStatus("sent");
-    startTransition(() => router.refresh());
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId, channel, recipient, message, followUpDate, status, result }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setSubmitError(data?.error ?? `Could not record this outreach (${res.status}). Nothing was saved.`);
+        return;
+      }
+      setMessage("");
+      setRecipient("");
+      setFollowUpDate("");
+      setResult("");
+      setStatus("sent");
+      startTransition(() => router.refresh());
+    } catch {
+      setSubmitError("Could not reach the server. Nothing was saved.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function onGenerateDraft() {
@@ -107,9 +122,10 @@ export function OutreachForm({ leadId }: { leadId: string }) {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />
-      <Button type="submit" size="sm" disabled={pending}>
-        Record outreach
+      <Button type="submit" size="sm" disabled={pending || submitting}>
+        {submitting ? "Recording…" : "Record outreach"}
       </Button>
+      {submitError && <p className="text-xs text-destructive">{submitError}</p>}
     </form>
   );
 }

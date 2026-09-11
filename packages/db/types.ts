@@ -37,6 +37,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 export type OutreachStatus = 'draft' | 'sent' | 'replied' | 'no_response' | 'bounced';
 export type OutreachDirection = 'outbound' | 'inbound';
 export type ProviderCategory = 'lead_data' | 'ai';
+export type TargetCompanySource = 'greenhouse' | 'lever' | 'ashby' | 'agency';
 
 export interface Database {
   public: {
@@ -926,6 +927,36 @@ export interface Database {
         };
         Relationships: [{ foreignKeyName: 'notifications_related_lead_id_fkey'; columns: ['related_lead_id']; isOneToOne: false; referencedRelation: 'leads'; referencedColumns: ['id'] }];
       };
+      target_companies: {
+        Row: {
+          id: string;
+          source: TargetCompanySource;
+          identifier: string;
+          label: string | null;
+          extra: Json | null;
+          enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          source: TargetCompanySource;
+          identifier: string;
+          label?: string | null;
+          extra?: Json | null;
+          enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          source?: TargetCompanySource;
+          identifier?: string;
+          label?: string | null;
+          extra?: Json | null;
+          enabled?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       scoring_config: {
         Row: {
           vertical: string;
@@ -984,3 +1015,4 @@ export type ProviderSecret = Database['public']['Tables']['provider_secrets']['R
 export type AiProviderSetting = Database['public']['Tables']['ai_provider_settings']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 export type ScoringConfig = Database['public']['Tables']['scoring_config']['Row'];
+export type TargetCompany = Database['public']['Tables']['target_companies']['Row'];

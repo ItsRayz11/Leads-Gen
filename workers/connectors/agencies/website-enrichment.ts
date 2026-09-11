@@ -1,6 +1,7 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { extractSiteSignals, stripHtml } from "./shared.js";
 import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
+import { resolveTargetCompanies } from "../../target-companies.js";
 
 /**
  * Buckets a self-reported headcount into the same bands the search filters
@@ -27,8 +28,20 @@ interface AgencySeed {
   twitterHandle?: string;
 }
 
-/** Read on demand — see config-files.ts for why this can't happen at module scope. */
-function seededAgencies(): AgencySeed[] {
+/**
+ * Database rows entered on the Integrations page first, falling back to the
+ * JSON file. Read on demand — see config-files.ts for why this can't happen
+ * at module scope.
+ */
+async function seededAgencies(): Promise<AgencySeed[]> {
+  const fromDb = await resolveTargetCompanies("agency");
+  if (fromDb) {
+    return fromDb.map((c) => ({
+      name: c.label ?? c.identifier,
+      website: c.identifier,
+      twitterHandle: typeof c.extra?.twitterHandle === "string" ? c.extra.twitterHandle : undefined,
+    }));
+  }
   const loaded = readJsonConfig<{ agencies: AgencySeed[] }>(CONFIG_FILE);
   if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
   return loaded.agencies ?? [];
@@ -61,7 +74,7 @@ export const websiteEnrichmentConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(_config: SearchConfig): Promise<RawSignal[]> {
     const agencies: AgencySeed[] =
-      (_config.agencies as AgencySeed[] | undefined) ?? seededAgencies();
+      (_config.agencies as AgencySeed[] | undefined) ?? (await seededAgencies());
     const signals: RawSignal[] = [];
 
     for (const agency of agencies) {

@@ -1,5 +1,6 @@
 import type { Vertical } from "@leads/core";
 import { getProviderSecret } from "@leads/db/secrets.js";
+import { listTargetCompanies } from "@leads/db/target-companies.js";
 import { isProviderEnabled, type GatedProvider } from "../provider-gate.js";
 import { readJsonConfig } from "../config-files.js";
 
@@ -43,7 +44,7 @@ const JOB_BOARD_CAPABILITIES: ProviderCapabilities = {
   companySize: cap(false),
 };
 
-const BOARD_CONFIGS: Record<string, { file: string; field: string; example: string; label: string }> = {
+const BOARD_CONFIGS: Record<"greenhouse" | "lever" | "ashby", { file: string; field: string; example: string; label: string }> = {
   greenhouse: {
     file: "config/target-companies/greenhouse.json",
     field: "boardTokens",
@@ -64,15 +65,24 @@ const BOARD_CONFIGS: Record<string, { file: string; field: string; example: stri
   },
 };
 
-function jobBoardStatus(connectorName: keyof typeof BOARD_CONFIGS): { configured: boolean; reason: string } {
+async function jobBoardStatus(connectorName: keyof typeof BOARD_CONFIGS): Promise<{ configured: boolean; reason: string }> {
   const board = BOARD_CONFIGS[connectorName];
-  const loaded = readJsonConfig<Record<string, unknown>>(board.file);
-  if (!loaded) return { configured: false, reason: `${board.file} is not available in this deployment` };
-  const companies = loaded[board.field];
-  if (!Array.isArray(companies) || companies.length === 0) {
-    return { configured: false, reason: `no companies to check — add ${board.field} (${board.example}) to ${board.file}` };
+
+  const dbRows = await listTargetCompanies(connectorName);
+  const dbEnabled = dbRows.filter((r) => r.enabled);
+  if (dbEnabled.length > 0) {
+    return { configured: true, reason: `${dbEnabled.length} compan${dbEnabled.length === 1 ? "y" : "ies"} configured` };
   }
-  return { configured: true, reason: `${companies.length} compan${companies.length === 1 ? "y" : "ies"} configured` };
+
+  const loaded = readJsonConfig<Record<string, unknown>>(board.file);
+  const companies = loaded?.[board.field];
+  if (Array.isArray(companies) && companies.length > 0) {
+    return { configured: true, reason: `${companies.length} compan${companies.length === 1 ? "y" : "ies"} configured (${board.file})` };
+  }
+  return {
+    configured: false,
+    reason: `no companies to check — add them (${board.example}) on the Integrations page`,
+  };
 }
 
 async function keyedProviderStatus(
@@ -93,7 +103,7 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
   const statuses: ProviderStatus[] = [];
 
   for (const name of Object.keys(BOARD_CONFIGS) as (keyof typeof BOARD_CONFIGS)[]) {
-    const { configured, reason } = jobBoardStatus(name);
+    const { configured, reason } = await jobBoardStatus(name);
     statuses.push({
       connector: name,
       label: BOARD_CONFIGS[name].label,
@@ -163,17 +173,21 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     },
   });
 
+  const dbAgencies = (await listTargetCompanies("agency")).filter((r) => r.enabled);
   const agencyConfig = readJsonConfig<{ agencies: unknown[] }>("config/target-companies/agencies.json");
-  const agencyCount = agencyConfig?.agencies?.length ?? 0;
+  const fileAgencyCount = agencyConfig?.agencies?.length ?? 0;
+  const agencyCount = dbAgencies.length > 0 ? dbAgencies.length : fileAgencyCount;
   statuses.push({
     connector: "agency-website-enrichment",
     label: "Website enrichment (seeded agencies)",
     vertical: "card_affiliate",
     configured: agencyCount > 0,
     reason:
-      agencyCount > 0
-        ? `${agencyCount} agenc${agencyCount === 1 ? "y" : "ies"} seeded`
-        : "no agencies seeded in config/target-companies/agencies.json",
+      dbAgencies.length > 0
+        ? `${dbAgencies.length} agenc${dbAgencies.length === 1 ? "y" : "ies"} seeded`
+        : fileAgencyCount > 0
+          ? `${fileAgencyCount} agenc${fileAgencyCount === 1 ? "y" : "ies"} seeded (config/target-companies/agencies.json)`
+          : "no agencies seeded — add them on the Integrations page",
     capabilities: {
       industry: cap(true, "seeded list is pre-classified by vertical"),
       geography: cap(false),

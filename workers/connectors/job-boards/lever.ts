@@ -2,15 +2,19 @@ import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 import { parseLocation } from "../../pipeline/shared.js";
 import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
+import { resolveTargetCompanies } from "../../target-companies.js";
 
 const CONFIG_FILE = "config/target-companies/lever.json";
 
 /**
- * Read on demand rather than at module scope: this file is loaded inside a
- * serverless function too, where a missing config used to throw during module
- * evaluation and take the whole discovery route down with it.
+ * Database rows entered on the Integrations page first, falling back to the
+ * JSON file. Read on demand rather than at module scope: this file is loaded
+ * inside a serverless function too, where a missing config used to throw
+ * during module evaluation and take the whole discovery route down with it.
  */
-function configuredCompanySlugs(): string[] {
+async function configuredCompanySlugs(): Promise<string[]> {
+  const fromDb = await resolveTargetCompanies("lever");
+  if (fromDb) return fromDb.map((c) => c.identifier);
   const loaded = readJsonConfig<{ companySlugs: string[] }>(CONFIG_FILE);
   if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
   return loaded.companySlugs ?? [];
@@ -42,7 +46,7 @@ export const leverConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
     const companySlugs: string[] =
-      (config.companySlugs as string[] | undefined) ?? configuredCompanySlugs();
+      (config.companySlugs as string[] | undefined) ?? (await configuredCompanySlugs());
     const keywords = roleKeywordsFrom(config);
     const signals: RawSignal[] = [];
 

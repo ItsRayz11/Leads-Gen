@@ -47,6 +47,7 @@ export function ProviderStatusPanel({ statuses }: { statuses: ProviderStatus[] }
             <th className="px-3 py-2">Vertical</th>
             <th className="px-3 py-2">Status</th>
             <th className="px-3 py-2">Capabilities</th>
+            <th className="px-3 py-2" />
           </tr>
         </thead>
         <tbody>
@@ -71,6 +72,13 @@ export function ProviderStatusPanel({ statuses }: { statuses: ProviderStatus[] }
                     />
                   ))}
                 </div>
+              </td>
+              <td className="px-3 py-2">
+                {!s.configured && (
+                  <a href="/integrations" className="text-xs text-primary hover:underline">
+                    Configure →
+                  </a>
+                )}
               </td>
             </tr>
           ))}

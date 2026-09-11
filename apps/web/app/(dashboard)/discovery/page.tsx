@@ -20,8 +20,9 @@ export default async function DiscoveryPage() {
       <div>
         <h1 className="text-xl font-semibold">Lead Discovery</h1>
         <p className="text-sm text-muted-foreground">
-          Describe what you want in plain English; it gets interpreted into structured filters you can review and
-          save. Run a vertical's connectors right now below, or let the scheduled GitHub Action handle it.
+          Describe what you want in plain English; it gets interpreted into structured filters you can review, then
+          run immediately or save for later. Run a vertical's connectors right now below, or let the scheduled
+          GitHub Action handle it.
         </p>
       </div>
 
@@ -116,9 +117,11 @@ export default async function DiscoveryPage() {
 
       <Card>
         <CardContent className="pt-4 text-sm text-muted-foreground">
-          A saved search becomes a config the pipeline reads once you press <span className="text-foreground">To
-          discovery</span> on it in{" "}
-          <span className="text-foreground">Saved Searches</span>. The buttons above trigger the same code as{" "}
+          Clicking <span className="text-foreground">Run</span> on a new search above saves it, turns it into a
+          config here, and runs its vertical immediately. A search you only <span className="text-foreground">Save
+          for later</span> instead becomes a config once you press <span className="text-foreground">To
+          discovery</span> on it in <span className="text-foreground">Saved Searches</span>. Either way, running a
+          vertical (from here or above) triggers the same code as{" "}
           <code className="text-foreground">npm run run:vertical1</code>,{" "}
           <code className="text-foreground">npm run run:vertical2</code>, or{" "}
           <code className="text-foreground">npm run run:vertical3</code> — or the scheduled GitHub Action —

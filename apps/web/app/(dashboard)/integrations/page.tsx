@@ -1,13 +1,15 @@
 import { listProviderConnections, getProviderKeyReport, type ProviderKeySource } from "../../../lib/data/integrations";
+import { listTargetCompanies } from "@leads/db/target-companies.js";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { ProviderToggle } from "../../../components/provider-toggle";
 import { ProviderSecretForm } from "../../../components/provider-secret-form";
+import { TargetCompanyList } from "../../../components/target-company-list";
 import type { ProviderConnection } from "@leads/db/types.js";
 
 const LEAD_DATA_PROVIDERS = [
-  { key: "web3_career", name: "Web3.Career" },
-  { key: "twitterapi_io", name: "TwitterAPI.io" },
+  { key: "web3_career", name: "Web3.Career", docsUrl: "https://web3.career/api" },
+  { key: "twitterapi_io", name: "TwitterAPI.io", docsUrl: "https://twitterapi.io" },
   { key: "hunter", name: "Hunter" },
   { key: "apollo", name: "Apollo" },
   { key: "prospeo", name: "Prospeo" },
@@ -21,6 +23,42 @@ const AI_PROVIDERS = [
   { key: "openrouter", name: "OpenRouter" },
   { key: "agentrouter", name: "AgentRouter" },
 ] as const;
+
+const TARGET_COMPANY_SECTIONS = [
+  {
+    source: "greenhouse" as const,
+    name: "Greenhouse",
+    docsUrl: "https://developers.greenhouse.io/job-board.html",
+    identifierLabel: "Board token",
+    identifierPlaceholder: "board token (e.g. acme)",
+    hint: "The {token} in job-boards.greenhouse.io/{token} — no API key needed, these boards are public.",
+  },
+  {
+    source: "lever" as const,
+    name: "Lever",
+    docsUrl: "https://github.com/lever/postings-api",
+    identifierLabel: "Company slug",
+    identifierPlaceholder: "company slug (e.g. acme)",
+    hint: "The {slug} in jobs.lever.co/{slug} — no API key needed, these boards are public.",
+  },
+  {
+    source: "ashby" as const,
+    name: "Ashby",
+    docsUrl: "https://developers.ashbyhq.com",
+    identifierLabel: "Board name",
+    identifierPlaceholder: "board name (e.g. acme)",
+    hint: "The {board} in jobs.ashbyhq.com/{board} — no API key needed, these boards are public.",
+  },
+  {
+    source: "agency" as const,
+    name: "Agency websites (card affiliate)",
+    docsUrl: null,
+    identifierLabel: "Website",
+    identifierPlaceholder: "https://agency.com",
+    hint: "Seed agencies you find yourself (referrals, roundups, research) — the pipeline enriches each from its own public site.",
+    showTwitterField: true,
+  },
+];
 
 function SourceBadge({ source }: { source: ProviderKeySource }) {
   if (source === "none") return <Badge variant="outline">No key configured</Badge>;
@@ -39,11 +77,13 @@ function LeadDataProviderRow({
   providerKey,
   source,
   connection,
+  docsUrl,
 }: {
   name: string;
   providerKey: string;
   source: ProviderKeySource;
   connection: ProviderConnection | undefined;
+  docsUrl?: string;
 }) {
   const enabled = connection?.enabled ?? true;
   const configured = source !== "none";
@@ -53,6 +93,11 @@ function LeadDataProviderRow({
       <div>
         <p className="text-sm font-medium">{name}</p>
         <p className="text-xs text-muted-foreground">{providerKey}</p>
+        {docsUrl && (
+          <a href={docsUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+            Get an API key →
+          </a>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <SourceBadge source={source} />
@@ -103,12 +148,16 @@ function AiProviderRow({
 }
 
 export default async function IntegrationsPage() {
-  const [connections, { status: keyStatus, storeUnavailable }] = await Promise.all([
+  const [connections, { status: keyStatus, storeUnavailable }, targetCompanyRows] = await Promise.all([
     listProviderConnections(),
     getProviderKeyReport(),
+    Promise.all(TARGET_COMPANY_SECTIONS.map((s) => listTargetCompanies(s.source))),
   ]);
 
   const byName = new Map(connections.map((c) => [c.provider_name, c]));
+  const targetCompaniesBySource = Object.fromEntries(
+    TARGET_COMPANY_SECTIONS.map((s, i) => [s.source, targetCompanyRows[i]])
+  );
 
   return (
     <div className="space-y-6">
@@ -148,7 +197,41 @@ export default async function IntegrationsPage() {
               providerKey={p.key}
               source={keyStatus[p.key]}
               connection={byName.get(p.key)}
+              docsUrl={"docsUrl" in p ? p.docsUrl : undefined}
             />
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Target company lists</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Which companies the job-board connectors check, and which agency websites the card-affiliate connector
+            enriches. These are public boards/pages — no API key required — so adding one here takes effect on the
+            next run with no redeploy.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {TARGET_COMPANY_SECTIONS.map((s) => (
+            <div key={s.source} className="space-y-1.5 border-b border-border pb-4 last:border-0 last:pb-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">{s.name}</p>
+                {s.docsUrl && (
+                  <a href={s.docsUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                    Official docs →
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{s.hint}</p>
+              <TargetCompanyList
+                source={s.source}
+                identifierLabel={s.identifierLabel}
+                identifierPlaceholder={s.identifierPlaceholder}
+                showTwitterField={"showTwitterField" in s ? s.showTwitterField : undefined}
+                rows={targetCompaniesBySource[s.source] ?? []}
+              />
+            </div>
           ))}
         </CardContent>
       </Card>

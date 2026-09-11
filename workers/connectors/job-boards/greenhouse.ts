@@ -2,15 +2,19 @@ import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 import { parseLocation } from "../../pipeline/shared.js";
 import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
+import { resolveTargetCompanies } from "../../target-companies.js";
 
 const CONFIG_FILE = "config/target-companies/greenhouse.json";
 
 /**
- * Read on demand rather than at module scope: this file is loaded inside a
- * serverless function too, where a missing config used to throw during module
- * evaluation and take the whole discovery route down with it.
+ * Database rows entered on the Integrations page first, falling back to the
+ * JSON file. Read on demand rather than at module scope: this file is loaded
+ * inside a serverless function too, where a missing config used to throw
+ * during module evaluation and take the whole discovery route down with it.
  */
-function configuredBoardTokens(): string[] {
+async function configuredBoardTokens(): Promise<string[]> {
+  const fromDb = await resolveTargetCompanies("greenhouse");
+  if (fromDb) return fromDb.map((c) => c.identifier);
   const loaded = readJsonConfig<{ boardTokens: string[] }>(CONFIG_FILE);
   if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
   return loaded.boardTokens ?? [];
@@ -47,7 +51,7 @@ export const greenhouseConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
     const boardTokens: string[] =
-      (config.boardTokens as string[] | undefined) ?? configuredBoardTokens();
+      (config.boardTokens as string[] | undefined) ?? (await configuredBoardTokens());
     const keywords = roleKeywordsFrom(config);
     const signals: RawSignal[] = [];
 

@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Input, Select, Textarea } from "./ui/input";
+import { Input, Textarea } from "./ui/input";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { SearchFilterEditor } from "./search-filter-editor";
+import { DiscoveryRunProgress } from "./discovery-run-progress";
+import { useDiscoveryRun, type Vertical } from "../lib/hooks/use-discovery-run";
 import {
   EMPTY_FILTERS,
   filtersToSearchParams,
@@ -25,14 +27,22 @@ interface InterpretResponse {
   error?: string;
 }
 
+const VERTICAL_TO_RUN_KEY: Record<string, Vertical> = {
+  hiring: "vertical1",
+  general: "vertical2",
+  card_affiliate: "vertical3",
+};
+
 /**
  * Two-step by design: interpret the natural-language query into structured
- * filters, let them be reviewed and corrected, then save. Saving raw text
- * alone would leave a search nothing can actually run.
+ * filters, let them be reviewed and corrected, then either save it for later
+ * or run it now. Saving raw text alone would leave a search nothing can
+ * actually run — this always interprets first (letting the AI decide the
+ * vertical unless the reviewed filters say otherwise) so Run always has
+ * something real to act on.
  */
 export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
   const [queryText, setQueryText] = useState("");
-  const [vertical, setVertical] = useState("");
   const [name, setName] = useState("");
   const [filters, setFilters] = useState<StructuredSearchFilters>(EMPTY_FILTERS);
   const [source, setSource] = useState<InterpretSource | null>(null);
@@ -40,8 +50,11 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
   const [error, setError] = useState<string | null>(null);
   const [interpreting, setInterpreting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [running, setRunning] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const { run, runVertical } = useDiscoveryRun();
 
   const interpreted = source !== null;
 
@@ -53,7 +66,9 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
       const res = await fetch("/api/saved-searches/interpret", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ queryText, vertical: vertical || null }),
+        // No vertical override from this form — the AI decides it from the
+        // query text, and it stays editable in the filter editor below.
+        body: JSON.stringify({ queryText, vertical: null }),
       });
       const data = (await res.json()) as InterpretResponse;
       if (!res.ok) {
@@ -62,6 +77,7 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
       }
       setFilters(data.filters);
       setSource(data.source);
+      setSaved(false);
       setNote(
         data.note ?? (data.source === "ai" ? `Interpreted by ${data.provider} (${data.model}).` : null)
       );
@@ -85,7 +101,7 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
           name: name.trim() || queryText.slice(0, 80),
           queryText,
           filters,
-          vertical: filters.vertical ?? vertical ?? null,
+          vertical: filters.vertical ?? null,
         }),
       });
       if (!res.ok) {
@@ -93,14 +109,56 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
         setError(data.error ?? "Could not save this search.");
         return;
       }
-      setQueryText("");
-      setName("");
-      setFilters(EMPTY_FILTERS);
-      setSource(null);
-      setNote(null);
+      setSaved(true);
       startTransition(() => router.refresh());
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onRun() {
+    if (!name.trim() && !queryText.trim()) return;
+    const runKey = filters.vertical ? VERTICAL_TO_RUN_KEY[filters.vertical] : undefined;
+    if (!runKey) {
+      setError("Pick a vertical below before running — it couldn't be inferred from this query.");
+      return;
+    }
+
+    setRunning(true);
+    setError(null);
+    try {
+      const saveRes = await fetch("/api/saved-searches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || queryText.slice(0, 80),
+          queryText,
+          filters,
+          vertical: filters.vertical,
+        }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) {
+        setError(saveData.error ?? "Could not save this search.");
+        return;
+      }
+      setSaved(true);
+
+      const configRes = await fetch(`/api/saved-searches/${saveData.savedSearch.id}/discovery-config`, {
+        method: "POST",
+      });
+      const configData = await configRes.json();
+      if (!configRes.ok) {
+        setError(configData.error ?? "Could not turn this search into a discovery config.");
+        return;
+      }
+
+      startTransition(() => router.refresh());
+      await runVertical(runKey);
+    } catch {
+      setError("Could not start the run.");
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -117,14 +175,8 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={vertical} onChange={(e) => setVertical(e.target.value)}>
-          <option value="">Let AI decide the vertical</option>
-          <option value="hiring">Hiring</option>
-          <option value="general">General</option>
-          <option value="card_affiliate">Card affiliate</option>
-        </Select>
         <Button type="button" size="sm" disabled={interpreting || !queryText.trim()} onClick={onInterpret}>
-          {interpreting ? "Interpreting…" : "Interpret into filters"}
+          {interpreting ? "Interpreting…" : interpreted ? "Re-interpret" : "Interpret into filters"}
         </Button>
         {aiStatus &&
           (aiStatus.ready ? (
@@ -150,8 +202,11 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Button type="button" size="sm" disabled={saving || pending} onClick={onSave}>
-              {saving ? "Saving…" : "Save this search"}
+            <Button type="button" size="sm" disabled={running || saving} onClick={onRun}>
+              {running ? "Running…" : "Run"}
+            </Button>
+            <Button type="button" size="sm" variant="outline" disabled={saving || running || pending} onClick={onSave}>
+              {saving ? "Saving…" : saved ? "Saved ✓" : "Save for later"}
             </Button>
             {!isFiltersEmpty(filters) && (
               <a href={previewHref} className="text-xs text-primary hover:underline">
@@ -161,6 +216,8 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
           </div>
         </>
       )}
+
+      {run && <DiscoveryRunProgress run={run} />}
     </div>
   );
 }

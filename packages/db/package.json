@@ -7,7 +7,8 @@
   "exports": {
     ".": "./client.ts",
     "./types.js": "./types.ts",
-    "./secrets.js": "./secrets.ts"
+    "./secrets.js": "./secrets.ts",
+    "./target-companies.js": "./target-companies.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.1"

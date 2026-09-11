@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex">
+    <div className="flex items-start">
       <Sidebar />
       <CommandPalette />
       <div className="flex min-h-screen flex-1 flex-col">
@@ -29,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </form>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+        <main className="flex-1 px-6 py-6">{children}</main>
       </div>
     </div>
   );

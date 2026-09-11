@@ -81,12 +81,12 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-card">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
       <div className="px-4 py-4">
         <p className="text-sm font-semibold leading-tight">Lead Intelligence</p>
         <p className="text-xs text-muted-foreground">Workspace</p>
       </div>
-      <nav className="flex-1 space-y-4 px-2 pb-4">
+      <nav className="space-y-4 px-2 pb-4">
         {NAV.map((group) => (
           <div key={group.section}>
             <p className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
@@ -116,7 +116,7 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="border-t border-border px-3 py-3 text-xs text-muted-foreground">
+      <div className="mt-2 border-t border-border px-3 py-3 text-xs text-muted-foreground">
         <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>{" "}
         <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">K</kbd>{" "}
         to jump anywhere

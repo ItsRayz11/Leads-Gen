@@ -23,6 +23,14 @@ export interface ConnectorCount {
   connector: string;
   signalsFound: number;
   note?: string;
+  /**
+   * Set when the connector threw rather than returning zero matches. A
+   * failure and an honest empty result are different outcomes, and the
+   * Discovery page has to be able to tell them apart — previously a throw
+   * was logged to stderr and the connector simply disappeared from the run
+   * summary, which reads as "it found nothing".
+   */
+  error?: string;
 }
 
 /** What a vertical run reports back to the Discovery page. `note` is a run-level explanation (e.g. no search configs at all), distinct from a per-connector one. */
@@ -31,6 +39,19 @@ export interface RunResult {
   connectorCounts: ConnectorCount[];
   leadsUpserted: { companyName: string; score: number }[];
   note?: string;
+  /**
+   * `completed` — every connector returned.
+   * `completed_with_warnings` — at least one connector failed or was gated
+   *   off, but the run still upserted what the others found.
+   * `failed` — the run itself could not proceed.
+   */
+  status?: "completed" | "completed_with_warnings" | "failed";
+}
+
+/** Derives a run's honest status from what its connectors actually did. */
+export function runStatus(connectorCounts: ConnectorCount[]): "completed" | "completed_with_warnings" {
+  const warned = connectorCounts.some((c) => c.error || c.note);
+  return warned ? "completed_with_warnings" : "completed";
 }
 
 export const VERTICAL_LEAD_TITLE: Record<Vertical, string> = {

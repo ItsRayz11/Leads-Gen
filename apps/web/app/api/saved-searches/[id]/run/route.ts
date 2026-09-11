@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../../lib/api-auth";
 import { createClient } from "../../../../../lib/supabase/server";
 import { listLeads, type LeadListRow } from "../../../../../lib/data/leads";
 import {
@@ -28,6 +29,9 @@ const QUALIFIED_ONWARD = new Set([
  * already reached "qualified" or later in the pipeline.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const supabase = await createClient();
 

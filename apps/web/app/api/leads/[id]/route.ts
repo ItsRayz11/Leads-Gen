@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import { buildLeadPatch } from "../../../../lib/data/lead-patch";
 import type { VerificationStatus } from "@leads/db/types.js";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const body = (await req.json()) as Record<string, unknown>;
   const patch = buildLeadPatch(body);

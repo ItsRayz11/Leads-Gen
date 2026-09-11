@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 import {
   CsvParseError,
@@ -48,6 +49,9 @@ function readJsonField(form: FormData, key: string): unknown {
  * would be its own source of bugs.
  */
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {

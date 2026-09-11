@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -12,6 +12,13 @@ import { cn } from "../../lib/utils";
  * filter field uses this one component so they all feel the same, whether
  * the field has a closed list (industries, countries, tiers, ...) or is
  * inherently open-ended (keywords, roles).
+ *
+ * Keyboard: ArrowDown/ArrowUp move the active option (opening the list if
+ * closed), Home/End jump to either end, Enter takes the active option —
+ * falling back to the typed text when custom values are allowed — Escape
+ * closes without selecting, and Backspace on an empty input removes the last
+ * chip. The combobox/listbox ARIA wiring means a screen reader announces the
+ * active option as it changes rather than leaving the list silent.
  */
 export function MultiSelect({
   options,
@@ -21,6 +28,8 @@ export function MultiSelect({
   allowCustom = true,
   loading = false,
   className,
+  id,
+  "aria-label": ariaLabel,
 }: {
   options: readonly string[];
   value: string[];
@@ -30,10 +39,20 @@ export function MultiSelect({
   /** Shows a "Loading options…" row instead of an empty dropdown while options are still being fetched. */
   loading?: boolean;
   className?: string;
+  /** Applied to the text input, so an external <label htmlFor> points at the right element. */
+  id?: string;
+  "aria-label"?: string;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  /** Index into `filtered` of the keyboard-highlighted option, or -1 for none. */
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const reactId = useId();
+  const listboxId = `${reactId}-listbox`;
+  const optionId = (index: number) => `${reactId}-option-${index}`;
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -51,14 +70,34 @@ export function MultiSelect({
   }, [options, query, selectedLower]);
 
   const exactMatch = options.some((o) => o.toLowerCase() === query.trim().toLowerCase());
+  const canAddCustom = query.trim().length > 0 && allowCustom && !exactMatch;
 
-  function add(raw: string) {
-    const next = raw.trim();
-    if (!next) return;
-    if (selectedLower.has(next.toLowerCase())) return;
-    onChange([...value, next]);
-    setQuery("");
-  }
+  // Typing changes the list under the highlight, so the old index would point
+  // at an unrelated option. Reset it rather than letting Enter pick something
+  // the user never looked at.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query, options]);
+
+  // Keep the highlighted option inside the scrollable list.
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return;
+    listRef.current.querySelector(`#${CSS.escape(optionId(activeIndex))}`)?.scrollIntoView({ block: "nearest" });
+    // optionId is derived from a stable id; re-running on index alone is right.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
+
+  const add = useCallback(
+    (raw: string) => {
+      const next = raw.trim();
+      if (!next) return;
+      if (selectedLower.has(next.toLowerCase())) return;
+      onChange([...value, next]);
+      setQuery("");
+      setActiveIndex(-1);
+    },
+    [onChange, selectedLower, value]
+  );
 
   function remove(item: string) {
     onChange(value.filter((v) => v.toLowerCase() !== item.toLowerCase()));
@@ -67,26 +106,90 @@ export function MultiSelect({
   function selectAll() {
     onChange([...value, ...filtered]);
     setQuery("");
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+  }
+
+  function clearAll() {
+    onChange([]);
+    setQuery("");
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+  }
+
+  function move(delta: number) {
+    if (!open) {
+      setOpen(true);
+      return;
+    }
+    if (filtered.length === 0) return;
+    setActiveIndex((prev) => {
+      const next = prev + delta;
+      if (next < 0) return filtered.length - 1;
+      if (next >= filtered.length) return 0;
+      return next;
+    });
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (query.trim() && (allowCustom || exactMatch)) add(query);
-      else if (filtered.length > 0) add(filtered[0]);
-    } else if (e.key === "Backspace" && query === "" && value.length > 0) {
-      remove(value[value.length - 1]);
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        move(1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        move(-1);
+        break;
+      case "Home":
+        if (open && filtered.length > 0) {
+          e.preventDefault();
+          setActiveIndex(0);
+        }
+        break;
+      case "End":
+        if (open && filtered.length > 0) {
+          e.preventDefault();
+          setActiveIndex(filtered.length - 1);
+        }
+        break;
+      case "Enter":
+        e.preventDefault();
+        // An explicitly highlighted option always wins over the typed text,
+        // so arrowing to an option and pressing Enter can't add a near-miss
+        // free-text value instead.
+        if (activeIndex >= 0 && activeIndex < filtered.length) add(filtered[activeIndex]);
+        else if (query.trim() && (allowCustom || exactMatch)) add(query);
+        else if (filtered.length > 0) add(filtered[0]);
+        break;
+      case "Escape":
+        if (open) {
+          e.preventDefault();
+          setOpen(false);
+          setActiveIndex(-1);
+        }
+        break;
+      case "Backspace":
+        if (query === "" && value.length > 0) remove(value[value.length - 1]);
+        break;
+      default:
+        break;
     }
   }
+
+  const showList = open && (loading || filtered.length > 0 || canAddCustom);
 
   return (
     <div ref={containerRef} className="relative">
       <div
         className={cn(
-          "flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 focus-within:ring-1 focus-within:ring-primary",
+          "flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 transition-colors focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary",
           className
         )}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          inputRef.current?.focus();
+        }}
       >
         {value.map((item) => (
           <span
@@ -100,7 +203,7 @@ export function MultiSelect({
                 e.stopPropagation();
                 remove(item);
               }}
-              className="text-muted-foreground hover:text-foreground"
+              className="rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               aria-label={`Remove ${item}`}
             >
               <X className="h-3 w-3" />
@@ -108,44 +211,86 @@ export function MultiSelect({
           </span>
         ))}
         <input
+          ref={inputRef}
+          id={id}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder={value.length === 0 ? placeholder : ""}
           className="min-w-[6rem] flex-1 bg-transparent py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls={showList ? listboxId : undefined}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          aria-autocomplete="list"
+          aria-label={ariaLabel}
+          autoComplete="off"
         />
+        {value.length > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearAll();
+            }}
+            className="ml-auto rounded-sm px-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+            aria-label={`Clear all ${value.length} selected`}
+            title="Clear selection"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
-      {open && (loading || filtered.length > 0 || (query.trim() && allowCustom && !exactMatch)) && (
-        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-card shadow-md">
+      {showList && (
+        <div
+          ref={listRef}
+          id={listboxId}
+          role="listbox"
+          aria-multiselectable="true"
+          aria-busy={loading}
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-card shadow-lg"
+        >
           {loading && (
-            <div className="px-3 py-1.5 text-sm text-muted-foreground">Loading options…</div>
+            <div className="px-3 py-1.5 text-sm text-muted-foreground" role="status">
+              Loading options…
+            </div>
           )}
           {!loading && filtered.length > 1 && (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={selectAll}
-              className="block w-full border-b border-border px-3 py-1.5 text-left text-sm font-medium text-primary hover:bg-accent"
+              className="block w-full border-b border-border px-3 py-1.5 text-left text-sm font-medium text-primary transition-colors hover:bg-accent"
             >
               Select all ({filtered.length})
             </button>
           )}
-          {!loading && query.trim() && allowCustom && !exactMatch && (
+          {!loading && canAddCustom && (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => add(query)}
-              className="block w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-accent"
+              className="block w-full px-3 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
             >
-              Add "{query.trim()}"
+              Add &ldquo;{query.trim()}&rdquo;
             </button>
           )}
-          {filtered.map((option) => (
+          {filtered.map((option, index) => (
             <button
               key={option}
+              id={optionId(index)}
+              role="option"
+              aria-selected={index === activeIndex}
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
               onClick={() => add(option)}
-              className="block w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-accent"
+              className={cn(
+                "block w-full px-3 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent",
+                index === activeIndex && "bg-accent"
+              )}
             >
               {option}
             </button>

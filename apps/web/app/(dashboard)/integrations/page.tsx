@@ -1,4 +1,4 @@
-import { listProviderConnections, getProviderKeyStatus, type ProviderKeySource } from "../../../lib/data/integrations";
+import { listProviderConnections, getProviderKeyReport, type ProviderKeySource } from "../../../lib/data/integrations";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { ProviderToggle } from "../../../components/provider-toggle";
@@ -103,7 +103,10 @@ function AiProviderRow({
 }
 
 export default async function IntegrationsPage() {
-  const [connections, keyStatus] = await Promise.all([listProviderConnections(), getProviderKeyStatus()]);
+  const [connections, { status: keyStatus, storeUnavailable }] = await Promise.all([
+    listProviderConnections(),
+    getProviderKeyReport(),
+  ]);
 
   const byName = new Map(connections.map((c) => [c.provider_name, c]));
 
@@ -117,6 +120,17 @@ export default async function IntegrationsPage() {
           saved key.
         </p>
       </div>
+
+      {storeUnavailable && (
+        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+          <p className="font-medium text-warning">Saved keys can&apos;t be read on this deployment</p>
+          <p className="mt-1 text-muted-foreground">{storeUnavailable}</p>
+          <p className="mt-1 text-muted-foreground">
+            Until then, every provider below reads as &ldquo;Not configured&rdquo; even if you already saved a key
+            here, and AI features will report that no provider is configured. Env-var keys are unaffected.
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -1,4 +1,4 @@
-import { listSearchConfigs } from "../../../lib/data/discovery";
+import { discoveryWriteBlocker, listSearchConfigs } from "../../../lib/data/discovery";
 import { getUseCaseStatus } from "../../../lib/data/ai-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
@@ -7,6 +7,7 @@ import { DiscoveryRunPanel } from "../../../components/discovery-run-panel";
 
 export default async function DiscoveryPage() {
   const [configs, aiStatus] = await Promise.all([listSearchConfigs(), getUseCaseStatus("search_interpretation")]);
+  const writeBlocker = discoveryWriteBlocker();
 
   return (
     <div className="space-y-4">
@@ -22,7 +23,13 @@ export default async function DiscoveryPage() {
         <CardHeader>
           <CardTitle>Run discovery now</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="space-y-3 pt-0">
+          {writeBlocker && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <p className="font-medium text-destructive">Runs started here can&apos;t save results</p>
+              <p className="mt-1 text-muted-foreground">{writeBlocker}</p>
+            </div>
+          )}
           <DiscoveryRunPanel />
         </CardContent>
       </Card>

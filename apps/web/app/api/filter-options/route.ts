@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { getFilterOptions } from "../../../lib/data/filter-options";
 
 /**
@@ -8,6 +9,9 @@ import { getFilterOptions } from "../../../lib/data/filter-options";
  * and live database values are merged.
  */
 export async function GET() {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   try {
     const options = await getFilterOptions();
     return NextResponse.json({ options });

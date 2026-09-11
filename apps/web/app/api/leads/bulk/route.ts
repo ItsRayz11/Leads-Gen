@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import { BULK_EDITABLE_FIELDS, buildLeadPatch } from "../../../../lib/data/lead-patch";
 import type { VerificationStatus } from "@leads/db/types.js";
@@ -23,6 +24,9 @@ interface BulkBody {
  * BULK_EDITABLE_FIELDS for which columns a bulk edit may touch and why.
  */
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const body = (await req.json()) as BulkBody;
 
   const ids = Array.isArray(body.ids)

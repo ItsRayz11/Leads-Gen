@@ -1,6 +1,16 @@
 import { createClient } from "../supabase/server";
 import { getProviderKeyStatus, type ProviderKeySource } from "./integrations";
 import type { AiProviderSetting } from "@leads/db/types.js";
+import type { AiUseCase } from "../ai-use-cases";
+
+// Re-exported so existing server-side importers keep working; the
+// definitions live in ../ai-use-cases so client components can use them too.
+export {
+  AI_USE_CASES,
+  AI_USE_CASE_LABELS,
+  AI_USE_CASE_UNASSIGNED_BEHAVIOUR,
+  type AiUseCase,
+} from "../ai-use-cases";
 
 export async function listAiProviderSettings(): Promise<AiProviderSetting[]> {
   const supabase = await createClient();
@@ -13,16 +23,6 @@ export async function listAiProviderSettings(): Promise<AiProviderSetting[]> {
   if (error) throw error;
   return data ?? [];
 }
-
-/** The three use cases this app actually calls generateText() for — see lib/ai/client.ts. */
-export const AI_USE_CASES = ["search_interpretation", "lead_qualification", "outreach_drafting"] as const;
-export type AiUseCase = (typeof AI_USE_CASES)[number];
-
-export const AI_USE_CASE_LABELS: Record<AiUseCase, string> = {
-  search_interpretation: "Search interpretation",
-  lead_qualification: "Lead qualification",
-  outreach_drafting: "Outreach drafting",
-};
 
 export interface UseCaseStatus {
   useCase: AiUseCase;

@@ -1,4 +1,4 @@
-import { getProviderSecret } from "@leads/db/secrets.js";
+import { getProviderSecret, missingSecretStoreEnv } from "@leads/db/secrets.js";
 import { createClient } from "../supabase/server";
 import {
   callOpenAI,
@@ -58,6 +58,20 @@ async function resolveApiKey(provider: string): Promise<string | null> {
   return getProviderSecret(provider);
 }
 
+/**
+ * Appended to every "no key" error. A key entered on the Integrations page
+ * is unreadable without the server-only env vars that back the secret store,
+ * and the resulting "no API key configured" is otherwise indistinguishable
+ * from never having entered one.
+ */
+function noKeyHint(): string {
+  const missingEnv = missingSecretStoreEnv();
+  if (!missingEnv) return "";
+  return ` Note that keys saved on the Integrations page cannot be read on this deployment because ${missingEnv} ${
+    missingEnv.includes(",") ? "are" : "is"
+  } not set.`;
+}
+
 export async function isProviderConfigured(provider: string): Promise<boolean> {
   return (await resolveApiKey(provider)) !== null;
 }
@@ -99,7 +113,7 @@ export async function generateText(useCase: string, prompt: string): Promise<Gen
   const usable = settings.filter((s) => keysByProvider.get(s.provider) !== null);
   if (usable.length === 0) {
     return {
-      error: `An AI provider is enabled for "${useCase.replace(/_/g, " ")}" but no API key is configured for it (env var or Integrations page).`,
+      error: `An AI provider is enabled for "${useCase.replace(/_/g, " ")}" but no API key is configured for it (env var or Integrations page).${noKeyHint()}`,
     };
   }
 
@@ -125,7 +139,9 @@ export async function testProviderConnection(
   model: string | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const apiKey = await resolveApiKey(provider);
-  if (!apiKey) return { ok: false, error: "No API key configured for this provider (env var or Integrations page)." };
+  if (!apiKey) {
+    return { ok: false, error: `No API key configured for this provider (env var or Integrations page).${noKeyHint()}` };
+  }
 
   const call = CALL_BY_PROVIDER[provider];
   if (!call) return { ok: false, error: `Unknown provider "${provider}".` };

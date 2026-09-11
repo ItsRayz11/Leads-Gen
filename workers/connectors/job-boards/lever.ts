@@ -1,13 +1,20 @@
-import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 import { parseLocation } from "../../pipeline/shared.js";
-import { repoPath } from "../../repo-root.js";
+import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
 
-const CONFIG_PATH = repoPath("config/target-companies/lever.json");
-const companySlugsConfig: { companySlugs: string[] } = JSON.parse(
-  readFileSync(CONFIG_PATH, "utf-8")
-);
+const CONFIG_FILE = "config/target-companies/lever.json";
+
+/**
+ * Read on demand rather than at module scope: this file is loaded inside a
+ * serverless function too, where a missing config used to throw during module
+ * evaluation and take the whole discovery route down with it.
+ */
+function configuredCompanySlugs(): string[] {
+  const loaded = readJsonConfig<{ companySlugs: string[] }>(CONFIG_FILE);
+  if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
+  return loaded.companySlugs ?? [];
+}
 
 interface LeverPosting {
   id: string;
@@ -35,7 +42,7 @@ export const leverConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
     const companySlugs: string[] =
-      (config.companySlugs as string[] | undefined) ?? companySlugsConfig.companySlugs;
+      (config.companySlugs as string[] | undefined) ?? configuredCompanySlugs();
     const keywords = roleKeywordsFrom(config);
     const signals: RawSignal[] = [];
 

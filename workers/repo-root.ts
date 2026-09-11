@@ -41,3 +41,17 @@ function findRepoRoot(): string {
 export function repoPath(...segments: string[]): string {
   return path.join(findRepoRoot(), ...segments);
 }
+
+/**
+ * The monorepo root, or null when there isn't one to find — inside a
+ * serverless bundle there is no workspaces package.json above the function,
+ * and throwing there is what turned a missing config file into a whole-route
+ * crash. Callers that can carry on without it use this instead of repoPath.
+ */
+export function repoRootOrNull(): string | null {
+  try {
+    return findRepoRoot();
+  } catch {
+    return null;
+  }
+}

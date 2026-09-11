@@ -1,11 +1,20 @@
-import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { buildRawSignal, classifyServiceType, roleKeywordsFrom, titleMatchesKeywords } from "./shared.js";
 import { parseLocation } from "../../pipeline/shared.js";
-import { repoPath } from "../../repo-root.js";
+import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
 
-const CONFIG_PATH = repoPath("config/target-companies/ashby.json");
-const boardNamesConfig: { boardNames: string[] } = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
+const CONFIG_FILE = "config/target-companies/ashby.json";
+
+/**
+ * Read on demand rather than at module scope: this file is loaded inside a
+ * serverless function too, where a missing config used to throw during module
+ * evaluation and take the whole discovery route down with it.
+ */
+function configuredBoardNames(): string[] {
+  const loaded = readJsonConfig<{ boardNames: string[] }>(CONFIG_FILE);
+  if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
+  return loaded.boardNames ?? [];
+}
 
 interface AshbyJob {
   id: string;
@@ -39,7 +48,7 @@ export const ashbyConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
     const boardNames: string[] =
-      (config.boardNames as string[] | undefined) ?? boardNamesConfig.boardNames;
+      (config.boardNames as string[] | undefined) ?? configuredBoardNames();
     const keywords = roleKeywordsFrom(config);
     const signals: RawSignal[] = [];
 

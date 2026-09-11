@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 
 interface AiProviderSettingInput {
@@ -10,6 +11,9 @@ interface AiProviderSettingInput {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as AiProviderSettingInput;
   if (!input.provider?.trim()) {
     return NextResponse.json({ error: "provider is required." }, { status: 400 });
@@ -40,6 +44,9 @@ export async function POST(req: NextRequest) {
  * advanced multi-provider-fallback table.
  */
 export async function PUT(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as {
     provider: string;
     use_case: string;
@@ -72,6 +79,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id, ...patch } = (await req.json()) as {
     id: string;
     model?: string;

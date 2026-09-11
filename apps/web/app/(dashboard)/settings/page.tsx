@@ -4,7 +4,7 @@ import {
   listAiProviderSettings,
   resolveUseCaseStatus,
 } from "../../../lib/data/ai-settings";
-import { getProviderKeyStatus } from "../../../lib/data/integrations";
+import { getProviderKeyReport } from "../../../lib/data/integrations";
 import { listScoringConfig } from "../../../lib/data/scoring-config";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
@@ -17,10 +17,10 @@ import { VERTICAL_LABELS } from "../../../lib/lead-options";
 import type { ScoreDimension } from "@leads/core";
 
 export default async function SettingsPage() {
-  const [settings, scoringConfig, keyStatus] = await Promise.all([
+  const [settings, scoringConfig, { status: keyStatus, storeUnavailable }] = await Promise.all([
     listAiProviderSettings(),
     listScoringConfig(),
-    getProviderKeyStatus(),
+    getProviderKeyReport(),
   ]);
 
   return (
@@ -41,6 +41,16 @@ export default async function SettingsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
+          {storeUnavailable && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <p className="font-medium text-warning">Keys saved on the Integrations page can&apos;t be read</p>
+              <p className="mt-1 text-muted-foreground">{storeUnavailable}</p>
+              <p className="mt-1 text-muted-foreground">
+                Assignments below will report &ldquo;no key configured&rdquo; for any provider whose key lives in the
+                database rather than an environment variable.
+              </p>
+            </div>
+          )}
           {AI_USE_CASES.map((useCase) => (
             <TaskRoutingForm
               key={useCase}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 import { insertEvidence, insertLeadWithUniqueTitle } from "../../../lib/data/lead-insert";
 import type {
@@ -67,6 +68,9 @@ function clampScore(value: number | string | undefined): number {
 const text = (value: string | undefined) => value?.trim() || null;
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as LeadCreateInput;
 
   const newCompanyName = input.company?.name?.trim();

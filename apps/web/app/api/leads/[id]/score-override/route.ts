@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../../lib/api-auth";
 import { createClient } from "../../../../../lib/supabase/server";
 import type { Json, LeadTier } from "@leads/db/types.js";
 
@@ -17,6 +18,9 @@ interface OverrideInput {
  * pipeline is visibly a different judgement, not a lost one.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const input = (await req.json()) as OverrideInput;
 

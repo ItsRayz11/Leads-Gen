@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 import type { Priority, TaskStatus } from "@leads/db/types.js";
 
@@ -12,6 +13,9 @@ interface TaskInput {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as TaskInput;
   if (!input.title?.trim()) {
     return NextResponse.json({ error: "Task title is required." }, { status: 400 });
@@ -36,6 +40,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id, ...patch } = (await req.json()) as {
     id: string;
     status?: TaskStatus;

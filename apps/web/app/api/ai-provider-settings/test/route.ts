@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import { testProviderConnection } from "../../../../lib/ai/client";
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = (await req.json()) as { id: string };
   if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
 

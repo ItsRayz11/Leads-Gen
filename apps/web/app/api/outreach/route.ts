@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 import type { OutreachStatus } from "@leads/db/types.js";
 
@@ -14,6 +15,9 @@ interface OutreachInput {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as OutreachInput;
   if (!input.leadId || !input.channel) {
     return NextResponse.json({ error: "leadId and channel are required." }, { status: 400 });

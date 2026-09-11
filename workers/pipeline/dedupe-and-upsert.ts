@@ -3,6 +3,7 @@ import type { RawSignal, Vertical } from "@leads/core";
 import type { Json } from "@leads/db/types.js";
 import type { ScoreRule } from "../scoring/score.js";
 import { rescoreLead } from "./rescore-lead.js";
+import { safeReporter, type ProgressReporter } from "./progress.js";
 import {
   VERTICAL_LEAD_TITLE,
   freshnessFromDate,
@@ -25,14 +26,21 @@ function firstMeta(signals: RawSignal[], key: string): string | undefined {
  * evidence already recorded for a lead (matched by URL) isn't re-inserted,
  * and human-edited lead fields (status, priority, owner, ...) are never
  * overwritten by a later pipeline run.
+ *
+ * `onProgress` is optional and reports one event per company as it lands, so
+ * the Discovery page can show leads arriving rather than a spinner over the
+ * whole batch.
  */
 export async function dedupeAndUpsert(
   rawSignals: RawSignal[],
-  rules: ScoreRule[]
+  rules: ScoreRule[],
+  onProgress?: ProgressReporter
 ): Promise<{ leadId: string; companyName: string; score: number }[]> {
   const supabase = createServiceRoleClient();
+  const report = safeReporter(onProgress);
 
   const groups = groupSignalsByCompany(rawSignals);
+  const total = groups.size;
 
   const results: { leadId: string; companyName: string; score: number }[] = [];
 
@@ -223,6 +231,7 @@ export async function dedupeAndUpsert(
 
     const { score } = await rescoreLead(supabase, leadId, vertical, rules);
     results.push({ leadId, companyName, score });
+    report({ type: "lead", companyName, score, index: results.length, total });
   }
 
   return results;

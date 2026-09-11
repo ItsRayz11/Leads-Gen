@@ -1,4 +1,4 @@
-import { listSecretProviders } from "@leads/db/secrets.js";
+import { getSecretStore } from "@leads/db/secrets.js";
 import { createClient } from "../supabase/server";
 import type { ProviderConnection } from "@leads/db/types.js";
 
@@ -36,12 +36,28 @@ const ENV_VAR_BY_PROVIDER: Record<string, string> = {
  * in provider_secrets entered from the Integrations page, otherwise none.
  */
 export async function getProviderKeyStatus(): Promise<Record<string, ProviderKeySource>> {
-  const dbConfigured = await listSecretProviders();
+  return (await getProviderKeyReport()).status;
+}
+
+export interface ProviderKeyReport {
+  status: Record<string, ProviderKeySource>;
+  /**
+   * Set when the database-backed key store couldn't be read at all. Without
+   * this, a missing SUPABASE_SERVICE_ROLE_KEY makes every stored key report
+   * as "none" — indistinguishable from never having entered one, which is
+   * what makes this failure so hard to diagnose from the UI.
+   */
+  storeUnavailable: string | null;
+}
+
+/** The same status, plus why the stored-key half of it may be empty. */
+export async function getProviderKeyReport(): Promise<ProviderKeyReport> {
+  const { providers: dbConfigured, unavailable } = await getSecretStore();
   const status: Record<string, ProviderKeySource> = {};
   for (const [provider, envVar] of Object.entries(ENV_VAR_BY_PROVIDER)) {
     if (process.env[envVar]) status[provider] = "env";
     else if (dbConfigured.has(provider)) status[provider] = "database";
     else status[provider] = "none";
   }
-  return status;
+  return { status, storeUnavailable: unavailable };
 }

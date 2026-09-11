@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 
 interface ProviderConnectionInput {
@@ -9,6 +10,9 @@ interface ProviderConnectionInput {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as ProviderConnectionInput;
   if (!input.provider_name || !input.category) {
     return NextResponse.json({ error: "provider_name and category are required." }, { status: 400 });

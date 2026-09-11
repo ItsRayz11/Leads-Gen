@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../../lib/api-auth";
 import { createClient } from "../../../../../lib/supabase/server";
 import { isFiltersEmpty, normalizeFilters, VERTICALS } from "../../../../../lib/ai/search-filters";
 import type { LeadVertical } from "@leads/db/types.js";
@@ -10,6 +11,9 @@ import type { LeadVertical } from "@leads/db/types.js";
  * rather than only what the dashboard filters.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const supabase = await createClient();
 

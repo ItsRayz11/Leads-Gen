@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { setProviderSecret, deleteProviderSecret } from "@leads/db/secrets.js";
-import { createClient } from "../../../lib/supabase/server";
 
 const KNOWN_PROVIDERS = new Set([
   "web3_career",
@@ -16,14 +16,6 @@ const KNOWN_PROVIDERS = new Set([
   "agentrouter",
 ]);
 
-async function requireUser(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
-
 interface ProviderSecretInput {
   provider: string;
   category: "lead_data" | "ai";
@@ -31,7 +23,8 @@ interface ProviderSecretInput {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await requireUser(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
 
   const input = (await req.json().catch(() => ({}))) as Partial<ProviderSecretInput>;
   if (!input.provider || !KNOWN_PROVIDERS.has(input.provider)) {
@@ -53,7 +46,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await requireUser(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
 
   const input = (await req.json().catch(() => ({}))) as { provider?: string };
   if (!input.provider || !KNOWN_PROVIDERS.has(input.provider)) {

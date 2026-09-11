@@ -6,7 +6,8 @@ import { Button } from "./ui/button";
 import { Input, Select } from "./ui/input";
 import { Badge } from "./ui/badge";
 import type { ProviderKeySource } from "../lib/data/integrations";
-import type { AiUseCase, UseCaseStatus } from "../lib/data/ai-settings";
+import { AI_USE_CASE_UNASSIGNED_BEHAVIOUR, type AiUseCase } from "../lib/ai-use-cases";
+import type { UseCaseStatus } from "../lib/data/ai-settings";
 
 const PROVIDERS = ["openai", "anthropic", "google", "openrouter", "agentrouter"] as const;
 const PROVIDER_NAMES: Record<string, string> = {
@@ -36,7 +37,12 @@ export function TaskRoutingForm({
   status: UseCaseStatus;
   keyStatus: Record<string, ProviderKeySource>;
 }) {
-  const [provider, setProvider] = useState(status.provider ?? PROVIDERS[4]);
+  // Default to whatever is already assigned; failing that, the first
+  // provider that actually has a key, so "Assign" is one click rather than
+  // a pick-then-discover-there-is-no-key round trip.
+  const [provider, setProvider] = useState(
+    status.provider ?? PROVIDERS.find((p) => keyStatus[p] && keyStatus[p] !== "none") ?? PROVIDERS[0]
+  );
   const [model, setModel] = useState(status.model ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +97,7 @@ export function TaskRoutingForm({
           </Badge>
         )}
         {status.reason === "not_assigned" && (
-          <Badge variant="outline">Not assigned — falls back to keyword parsing</Badge>
+          <Badge variant="outline">{AI_USE_CASE_UNASSIGNED_BEHAVIOUR[useCase]}</Badge>
         )}
       </div>
 
@@ -128,7 +134,7 @@ export function TaskRoutingForm({
       {!selectedHasKey && (
         <p className="text-xs text-muted-foreground">
           {PROVIDER_NAMES[provider]} has no API key yet — add one on the Integrations page before assigning it, or
-          this task will keep falling back.
+          this task stays unavailable.
         </p>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}

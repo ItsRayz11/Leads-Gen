@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../../lib/api-auth";
 import { createClient } from "../../../../../lib/supabase/server";
 import { generateText } from "../../../../../lib/ai/client";
 import {
@@ -47,6 +48,9 @@ const LEAD_SELECT = `
  * back, so an AI judgement never silently overwrites what's on file.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const supabase = await createClient();
 
@@ -148,6 +152,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
  * judgement stays auditable instead of collapsing into a single paragraph.
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const body = (await req.json()) as { draft?: QualificationDraft; provider?: string; model?: string };
   const draft = body.draft;

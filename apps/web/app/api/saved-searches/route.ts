@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 import { filtersToJson, normalizeFilters } from "../../../lib/ai/search-filters";
 
@@ -10,6 +11,9 @@ interface SavedSearchInput {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const input = (await req.json()) as SavedSearchInput;
   if (!input.name?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });

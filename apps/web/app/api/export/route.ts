@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { stringify } from "csv-stringify/sync";
 import { createClient } from "../../../lib/supabase/server";
 import { formatDate, formatDateTime } from "../../../lib/utils";
@@ -12,6 +13,9 @@ const EXPORT_SELECT = `
 `;
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { searchParams } = new URL(req.url);
   const vertical = searchParams.get("vertical");
   const status = searchParams.get("status");

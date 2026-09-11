@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import type { Database } from "@leads/db/types.js";
 
 type ScoringConfigUpdate = Database["public"]["Tables"]["scoring_config"]["Update"];
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ vertical: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { vertical } = await params;
   const body = await req.json().catch(() => ({}));
 

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../../lib/api-auth";
 import { createClient } from "../../../../../lib/supabase/server";
 import { generateText } from "../../../../../lib/ai/client";
 import { buildOutreachPrompt, type DraftType } from "../../../../../lib/ai/outreach-prompt";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const { draftType } = (await req.json()) as { draftType: DraftType };
 

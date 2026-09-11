@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { generateText } from "../../../../lib/ai/client";
 import {
   buildSearchInterpretPrompt,
@@ -18,6 +19,9 @@ interface InterpretInput {
  * interpretation — `source` and `note` say exactly which one the caller got.
  */
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { queryText, vertical } = (await req.json()) as InterpretInput;
   if (!queryText?.trim()) {
     return NextResponse.json({ error: "queryText is required." }, { status: 400 });

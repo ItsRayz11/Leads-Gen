@@ -1,12 +1,16 @@
-import { readFileSync } from "node:fs";
 import { createServiceRoleClient } from "@leads/db";
 import type { SearchConfig, Vertical } from "@leads/core";
-import { repoPath } from "../repo-root.js";
+import { readJsonConfig } from "../config-files.js";
 
-const FALLBACK_CONFIG_PATHS: Record<Vertical, string | null> = {
+/**
+ * Relative paths, resolved and read on demand — calling repoPath() here at
+ * module scope threw inside a serverless bundle (no monorepo root above the
+ * function), which failed the import of every module downstream of this one.
+ */
+const FALLBACK_CONFIG_FILES: Record<Vertical, string | null> = {
   hiring: null,
   card_affiliate: null,
-  general: repoPath("config/search-configs/vertical2.json"),
+  general: "config/search-configs/vertical2.json",
 };
 
 /**
@@ -32,11 +36,12 @@ export async function loadSearchConfigs(vertical: Vertical): Promise<SearchConfi
     }));
   }
 
-  const fallbackPath = FALLBACK_CONFIG_PATHS[vertical];
-  if (!fallbackPath) return [{ vertical }];
+  const fallbackFile = FALLBACK_CONFIG_FILES[vertical];
+  if (!fallbackFile) return [{ vertical }];
 
-  const fallback: { configs: Omit<SearchConfig, "vertical">[] } = JSON.parse(
-    readFileSync(fallbackPath, "utf-8")
-  );
+  const fallback = readJsonConfig<{ configs: Omit<SearchConfig, "vertical">[] }>(fallbackFile);
+  // No rows and no bundled fallback file: the caller reports "no search
+  // configs" rather than this throwing mid-run.
+  if (!fallback) return [];
   return fallback.configs.map((c) => ({ vertical, ...c }));
 }

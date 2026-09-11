@@ -60,6 +60,21 @@ CryptoJobsList works with no config (public RSS). Web3.career and the Twitter co
 npm run run:vertical1
 ```
 
+## Running discovery from the dashboard
+
+`/discovery` has a **Run** button per vertical that triggers the same code as the CLI commands above, in-process, writing into the same database.
+
+The run is **streamed**: the API route emits a server-sent event per step, so the page shows each connector starting and finishing, the notes explaining any zero, leads arriving one at a time against a determinate progress bar, and a final `completed` / `completed_with_warnings` badge. Nothing on that panel is simulated — every line comes from the run itself.
+
+Two things worth knowing before you rely on the in-browser button:
+
+- **It needs `SUPABASE_SERVICE_ROLE_KEY`.** Every vertical ends in an upsert that bypasses RLS. Without that env var (and `SUPABASE_URL`) a run can still call the connectors but cannot save a single lead — the page says so up front rather than after the wait.
+- **Serverless functions have a time limit.** On Vercel's Hobby plan a function is capped well below the `maxDuration = 300` this route asks for, so a long scrape can be cut off mid-run. Leads already upserted are kept, and the panel reports the truncation instead of spinning forever. For a full crawl, prefer the CLI or the scheduled GitHub Action.
+
+### Why a run finds nothing
+
+Greenhouse, Lever and Ashby have no "search every company" endpoint — they only return jobs for boards you name, and `config/target-companies/*.json` ships empty. Until you add board tokens there (see the section above), those three connectors honestly report *"no companies to check"* rather than a bare zero. Web3.career and the Twitter connectors report *"no API key configured"*. CryptoJobsList and Hacker News need no configuration at all.
+
 ## Vertical 3 — Bitget Card affiliate leads (ad/media-buying agencies)
 
 There's no free "discover all ad agencies" API — Clutch and DesignRush have no public API (only paid third-party scrapers, which aren't wired up here), Meta's free Ad Library API only covers political/social/housing/credit ads (not general commercial ad spend), and Google's Custom Search API is closed to new signups. So this vertical works as **seed + enrich**, not discovery: add candidate agencies you already know about (from manual research, referrals, roundup articles you read yourself) to `config/target-companies/agencies.json` as `{ name, website, twitterHandle }`. The pipeline then visits each agency's own public pages (home/about/case-studies/work/clients) looking for disclosed ad-spend figures, channel breadth (Meta/Google/TikTok), prior Web3/crypto client work, and team size, plus an optional Twitter self-description search. Run with:

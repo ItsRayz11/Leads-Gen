@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import { filtersToJson, normalizeFilters } from "../../../../lib/ai/search-filters";
 import type { Json } from "@leads/db/types.js";
@@ -12,6 +13,9 @@ interface SavedSearchPatch {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const input = (await req.json()) as SavedSearchPatch;
 
@@ -39,6 +43,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const supabase = await createClient();
   const { error } = await supabase.from("saved_searches").delete().eq("id", id);

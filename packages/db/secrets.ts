@@ -90,15 +90,59 @@ export async function deleteProviderSecret(providerName: string): Promise<void> 
   if (error) throw error;
 }
 
-/** Provider names with a row in the table — no decryption, just presence, for status badges. Fails open (empty set) rather than breaking the Integrations page when service-role access isn't configured. */
-export async function listSecretProviders(): Promise<Set<string>> {
+/**
+ * Whether the database-backed key store can be read at all, and if not, why.
+ *
+ * Reading it needs two server-only env vars — SUPABASE_SERVICE_ROLE_KEY (the
+ * rows are service-role only) and SECRETS_ENCRYPTION_KEY (to decrypt). When
+ * either is missing, every stored key silently becomes invisible: the
+ * Integrations page shows providers as unconfigured and AI features report
+ * "no API key configured" even though the user entered one and saw it saved.
+ * That's the single most confusing failure this app can have, so the reason
+ * travels with the result instead of going only to a server log.
+ */
+export interface SecretStoreStatus {
+  /** Provider names with a row in the table. Empty when `unavailable` is set. */
+  providers: Set<string>;
+  /** Null when the store was read successfully; otherwise why it couldn't be. */
+  unavailable: string | null;
+}
+
+/** Which required env vars are missing, as a user-facing phrase, or null when all are present. */
+export function missingSecretStoreEnv(): string | null {
+  const missing = [
+    !process.env.SUPABASE_URL && "SUPABASE_URL",
+    !process.env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
+    !process.env.SECRETS_ENCRYPTION_KEY && "SECRETS_ENCRYPTION_KEY",
+  ].filter((v): v is string => typeof v === "string");
+  return missing.length > 0 ? missing.join(", ") : null;
+}
+
+/** Provider names with a row in the table — no decryption, just presence, for status badges. Fails open (empty set) rather than breaking the Integrations page, but reports why. */
+export async function getSecretStore(): Promise<SecretStoreStatus> {
+  const missingEnv = missingSecretStoreEnv();
+  if (missingEnv) {
+    return {
+      providers: new Set(),
+      unavailable: `Keys saved on this page can't be read back because ${missingEnv} ${
+        missingEnv.includes(",") ? "are" : "is"
+      } not set on the server. Add ${missingEnv.includes(",") ? "them" : "it"} to the deployment's environment variables and redeploy.`,
+    };
+  }
+
   try {
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase.from("provider_secrets").select("provider_name");
     if (error) throw error;
-    return new Set((data ?? []).map((row) => row.provider_name));
+    return { providers: new Set((data ?? []).map((row) => row.provider_name)), unavailable: null };
   } catch (err) {
-    console.warn(`[provider-secrets] could not list configured providers: ${err instanceof Error ? err.message : err}`);
-    return new Set();
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[provider-secrets] could not list configured providers: ${message}`);
+    return { providers: new Set(), unavailable: `The stored-key lookup failed: ${message}` };
   }
+}
+
+/** Back-compat shorthand for callers that only need the names. */
+export async function listSecretProviders(): Promise<Set<string>> {
+  return (await getSecretStore()).providers;
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../../lib/api-auth";
 import { createClient } from "../../../../lib/supabase/server";
 import type { OutreachStatus } from "@leads/db/types.js";
 
@@ -19,6 +20,9 @@ const RESULT_ACTIVITY: Record<OutreachStatus, string | null> = {
 };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const patch = (await req.json()) as OutreachPatch;
 
@@ -91,6 +95,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const supabase = await createClient();
   const { error } = await supabase.from("outreach").delete().eq("id", id);

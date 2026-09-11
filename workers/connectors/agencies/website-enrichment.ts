@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
 import { extractSiteSignals, stripHtml } from "./shared.js";
-import { repoPath } from "../../repo-root.js";
+import { missingConfigMessage, readJsonConfig } from "../../config-files.js";
 
 /**
  * Buckets a self-reported headcount into the same bands the search filters
@@ -20,7 +19,7 @@ function bucketCompanySize(teamSize: number | undefined): string | undefined {
   return "10001+";
 }
 
-const CONFIG_PATH = repoPath("config/target-companies/agencies.json");
+const CONFIG_FILE = "config/target-companies/agencies.json";
 
 interface AgencySeed {
   name: string;
@@ -28,7 +27,12 @@ interface AgencySeed {
   twitterHandle?: string;
 }
 
-const agenciesConfig: { agencies: AgencySeed[] } = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
+/** Read on demand — see config-files.ts for why this can't happen at module scope. */
+function seededAgencies(): AgencySeed[] {
+  const loaded = readJsonConfig<{ agencies: AgencySeed[] }>(CONFIG_FILE);
+  if (!loaded) throw new Error(missingConfigMessage(CONFIG_FILE));
+  return loaded.agencies ?? [];
+}
 
 const CANDIDATE_PATHS = ["", "/about", "/case-studies", "/work", "/clients"];
 
@@ -57,7 +61,7 @@ export const websiteEnrichmentConnector: SourceConnector = {
   requiresApiKey: false,
   async fetch(_config: SearchConfig): Promise<RawSignal[]> {
     const agencies: AgencySeed[] =
-      (_config.agencies as AgencySeed[] | undefined) ?? agenciesConfig.agencies;
+      (_config.agencies as AgencySeed[] | undefined) ?? seededAgencies();
     const signals: RawSignal[] = [];
 
     for (const agency of agencies) {

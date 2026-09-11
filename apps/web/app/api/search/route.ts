@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "../../../lib/api-auth";
 import { createClient } from "../../../lib/supabase/server";
 
 export interface SearchCompanyResult {
@@ -36,6 +37,9 @@ export interface SearchResponse {
  * searchable text.
  */
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireUser();
+  if (unauthorized) return unauthorized;
+
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) {
     return NextResponse.json({ companies: [], leads: [], contacts: [] } satisfies SearchResponse);

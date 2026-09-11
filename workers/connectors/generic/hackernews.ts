@@ -17,13 +17,32 @@ interface HnSearchResponse {
   hits: HnHit[];
 }
 
+/**
+ * Algolia's default search is fuzzy: it prefix-matches and tolerates typos,
+ * so the query `web3` comes back with WebGPU, WebAudio, Web Store, webcams
+ * and WebAssembly, and a multi-word query is scored by relevance rather than
+ * required to match as a phrase. For a *filter* that is simply wrong — a
+ * keyword the user typed has to mean that keyword, or the results are noise
+ * dressed up as targeting.
+ *
+ * `advancedSyntax` enables quoted exact-phrase matching, the quotes make each
+ * keyword a phrase rather than a bag of words, and typo tolerance is off so
+ * "web3" cannot drift to "webgpu". Any quotes already in the keyword are
+ * stripped first so a user who quotes it themselves doesn't nest them.
+ */
+function asExactPhrase(keyword: string): string {
+  return `"${keyword.replace(/"/g, " ").trim()}"`;
+}
+
 async function searchHn(query: string): Promise<HnHit[]> {
   const sinceEpoch = Math.floor(Date.now() / 1000) - LOOKBACK_DAYS * 24 * 60 * 60;
   const params = new URLSearchParams({
-    query,
+    query: asExactPhrase(query),
     tags: "story",
     numericFilters: `created_at_i>${sinceEpoch}`,
     hitsPerPage: "50",
+    advancedSyntax: "true",
+    typoTolerance: "false",
   });
   const res = await fetch(`${BASE_URL}?${params.toString()}`);
   if (!res.ok) throw new Error(`HN Algolia API error: ${res.status}`);
@@ -53,7 +72,18 @@ export const hackerNewsConnector: SourceConnector = {
   enabled: true,
   requiresApiKey: false,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const keywords = config.keywords ?? [];
+    // `industries` is searched alongside `keywords` rather than ignored.
+    // A search interpreted from "fintech startups" stores "Fintech" as an
+    // industry, and dropping it here would make the Industry filter
+    // decorative -- the user picks it, the backend stores it, and nothing
+    // about the results changes. HN has no industry field to filter on, so
+    // the honest equivalent is to search for the term.
+    //
+    // `geography` is deliberately NOT used: HN stories carry no location,
+    // so turning a country filter into a search term would match posts that
+    // merely mention the place, which is worse than not filtering at all.
+    const industries = (config.industries ?? []) as string[];
+    const keywords = Array.from(new Set([...(config.keywords ?? []), ...industries]));
     const excludeKeywords = config.excludeKeywords ?? [];
     const signals: RawSignal[] = [];
     const seenObjectIds = new Set<string>();

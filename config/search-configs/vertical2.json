@@ -1,15 +1,30 @@
 {
-  "_comment": "Fallback search configs used only when the search_configs DB table has no enabled rows for this vertical. Add rows to the DB table instead once the dashboard has a way to manage them, or edit this file directly for now.",
+  "_comment": "FALLBACK ONLY -- used when the search_configs DB table has no enabled rows for this vertical. The real control surface is the Discovery page: describe what you want, review the interpreted filters, save it, then press 'To discovery' to promote it into a search_configs row, which takes precedence over everything here. Keywords are matched as exact phrases, so a term means that term.",
+  "_yield_note": "Measured against HN's last 30 days on 2026-09-11: 'Launch HN' = 12 real funded companies; 'Show HN' = 3673 (a firehose of hobby projects, deliberately NOT used); 'community manager' / 'growth marketing' / 'seed round' = 0. Keywords here are chosen for precision over volume -- a lead you have to hand-filter costs more than it is worth.",
   "configs": [
     {
-      "name": "New launches needing marketing/community help",
-      "keywords": ["Show HN", "Launch HN"],
-      "excludeKeywords": []
+      "name": "Funded launches (any industry) - a company at its launch moment",
+      "_why": "Launch HN is reserved for YC-backed companies announcing themselves. Funded, named, real, and launching is exactly when a team needs community/social/content help -- regardless of what they build.",
+      "keywords": ["Launch HN"],
+      "excludeKeywords": ["who wants to be hired", "who is hiring"]
     },
     {
-      "name": "Startups hiring marketing/community roles",
-      "keywords": ["hiring marketing", "hiring community manager", "seeking growth marketer"],
-      "excludeKeywords": []
+      "name": "Recent YC batches mentioned outside their launch post",
+      "_why": "Catches the same class of company when it surfaces in a non-Launch-HN thread. Roll these forward as new batches ship (S26 -> W27 -> ...).",
+      "keywords": ["YC S26", "YC W26"],
+      "excludeKeywords": ["who wants to be hired", "who is hiring"]
+    },
+    {
+      "name": "Teams openly asking for marketing / community / growth help",
+      "_why": "Zero yield on most days -- kept because it costs one API call and fires on the rare post that is a direct, explicit buying signal. Excludes the monthly 'Who is hiring?' mega-threads, which are one thread, not one company.",
+      "keywords": [
+        "hiring community manager",
+        "hiring social media manager",
+        "hiring head of marketing",
+        "looking for community manager",
+        "help with go to market"
+      ],
+      "excludeKeywords": ["who wants to be hired", "who is hiring", "resume", "seeking work"]
     }
   ]
 }

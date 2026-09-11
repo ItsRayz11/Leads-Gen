@@ -7,6 +7,7 @@ import { ProviderToggle } from "../../../components/provider-toggle";
 import { ProviderSecretForm } from "../../../components/provider-secret-form";
 import { ProviderStatusPanel } from "../../../components/provider-status-panel";
 import { TargetCompanyList } from "../../../components/target-company-list";
+import { CompanyFinder } from "../../../components/company-finder";
 import type { ProviderConnection } from "@leads/db/types.js";
 
 const LEAD_DATA_PROVIDERS = [
@@ -230,6 +231,7 @@ export default async function IntegrationsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
+          <CompanyFinder />
           {TARGET_COMPANY_SECTIONS.map((s) => (
             <div key={s.source} className="space-y-1.5 border-b border-border pb-4 last:border-0 last:pb-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2">

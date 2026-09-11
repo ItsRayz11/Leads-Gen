@@ -302,7 +302,7 @@ const ARRAY_FIELDS = [
   "freshness",
 ] as const satisfies readonly (keyof StructuredSearchFilters)[];
 
-function toStringArray(value: unknown, allowed?: readonly string[]): string[] {
+function toStringArray(value: unknown, allowed?: readonly string[], max = 20): string[] {
   if (!Array.isArray(value)) return [];
   const out: string[] = [];
   for (const item of value) {
@@ -317,7 +317,7 @@ function toStringArray(value: unknown, allowed?: readonly string[]): string[] {
     }
     if (!out.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) out.push(trimmed);
   }
-  return out.slice(0, 20);
+  return out.slice(0, max);
 }
 
 /**
@@ -345,7 +345,7 @@ export function normalizeFilters(input: unknown): StructuredSearchFilters {
     excludeKeywords: toStringArray(raw.excludeKeywords),
     roleKeywords: toStringArray(raw.roleKeywords),
     industries: toStringArray(raw.industries),
-    countries: toStringArray(raw.countries),
+    countries: toStringArray(raw.countries, undefined, 5),
     regions: toStringArray(raw.regions),
     companySizes: toStringArray(raw.companySizes),
     signalTypes: toStringArray(raw.signalTypes),

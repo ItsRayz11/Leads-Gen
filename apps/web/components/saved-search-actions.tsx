@@ -43,7 +43,15 @@ export function SavedSearchActions({
         setError(data.error ?? "Could not run this search.");
         return;
       }
-      setMessage(`${data.resultsCount} matching lead(s), ${data.qualifiedCount} already qualified or later.`);
+      if (data.resultsCount === 0) {
+        setMessage(
+          vertical
+            ? `0 matching leads yet in this pipeline's collected data — try "Add to discovery pipeline" to have it start collecting for these filters.`
+            : `0 matching leads — this search has no vertical, so it can only search leads other pipelines already collected. Try "Re-interpret" and pick a vertical, or use "Add to discovery pipeline" once one is set.`
+        );
+      } else {
+        setMessage(`${data.resultsCount} matching lead(s), ${data.qualifiedCount} already qualified or later.`);
+      }
       refresh();
       router.push(data.href);
     } finally {
@@ -133,9 +141,13 @@ export function SavedSearchActions({
           size="sm"
           disabled={busy !== null || !hasFilters}
           onClick={onRun}
-          title={hasFilters ? "Run these filters against your existing leads" : "Interpret this search first"}
+          title={
+            hasFilters
+              ? "Search leads already collected in the database — does not go fetch new ones"
+              : "Interpret this search first"
+          }
         >
-          {busy === "run" ? "…" : "Run"}
+          {busy === "run" ? "…" : "Search existing leads"}
         </Button>
         <Button type="button" variant="secondary" size="sm" disabled={busy !== null} onClick={onReinterpret}>
           {busy === "interpret" ? "…" : "Re-interpret"}
@@ -146,9 +158,13 @@ export function SavedSearchActions({
           size="sm"
           disabled={busy !== null || !hasFilters}
           onClick={onPromote}
-          title={hasFilters ? "Create a workers-pipeline discovery config" : "Interpret this search first"}
+          title={
+            hasFilters
+              ? "Register these filters so the discovery pipeline collects matching leads going forward"
+              : "Interpret this search first"
+          }
         >
-          {busy === "promote" ? "…" : "To discovery"}
+          {busy === "promote" ? "…" : "Add to discovery pipeline"}
         </Button>
         <Button type="button" variant="ghost" size="sm" disabled={busy !== null} onClick={onDelete}>
           Delete

@@ -116,6 +116,29 @@ export function SearchFilterEditor({
         </p>
       )}
 
+      <div className="space-y-1 rounded-md border border-border bg-muted/30 p-2">
+        <label className="text-xs font-medium">{FILTER_LABELS.vertical} — which pipeline can act on this</label>
+        <Select
+          className="w-full"
+          value={filters.vertical ?? ""}
+          onChange={(e) => set("vertical", e.target.value || null)}
+        >
+          <option value="">Not set — can only be saved/previewed, not run as a discovery pipeline</option>
+          {VERTICALS.map((v) => (
+            <option key={v} value={v}>
+              {v.replace(/_/g, " ")}
+            </option>
+          ))}
+        </Select>
+        {!filters.vertical && (
+          <p className="text-xs text-muted-foreground">
+            The AI couldn&apos;t match this request to one of the {VERTICALS.length} pipelines this app can
+            actually run ({VERTICALS.map((v) => v.replace(/_/g, " ")).join(", ")}). Pick the closest one above to
+            enable Run, or leave it blank to only save the search / preview against existing leads.
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {arrayFields.map((field) => (
           <div key={field.key} className="space-y-1">
@@ -130,22 +153,6 @@ export function SearchFilterEditor({
             />
           </div>
         ))}
-
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">{FILTER_LABELS.vertical}</label>
-          <Select
-            className="w-full"
-            value={filters.vertical ?? ""}
-            onChange={(e) => set("vertical", e.target.value || null)}
-          >
-            <option value="">Any</option>
-            {VERTICALS.map((v) => (
-              <option key={v} value={v}>
-                {v.replace(/_/g, " ")}
-              </option>
-            ))}
-          </Select>
-        </div>
 
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">{FILTER_LABELS.minScore}</label>

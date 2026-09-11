@@ -133,17 +133,16 @@ export async function listLeads(
   if (structured.freshness.length > 0) query = query.in("freshness", structured.freshness as Freshness[]);
   if (structured.minScore !== null) query = query.gte("score", structured.minScore);
 
-  const keywordClause = ilikeOrClause(
-    ["title", "buying_signal_summary", "qualification_summary", "service_type"],
-    structured.keywords
+  // Keywords, role titles and service types all describe the same thing from
+  // different angles ("what should this lead's text mention"), so a lead
+  // matching ANY one of them is a candidate — requiring all three at once
+  // (three separate ANDed .or() calls) made realistic multi-field searches
+  // zero out even when good matches existed for some of the fields.
+  const textSignalClause = ilikeOrClause(
+    ["title", "buying_signal_summary", "qualification_summary", "service_type", "opportunity_type"],
+    [...structured.keywords, ...structured.roleKeywords, ...structured.serviceTypes]
   );
-  if (keywordClause) query = query.or(keywordClause);
-
-  const roleClause = ilikeOrClause(["title", "buying_signal_summary"], structured.roleKeywords);
-  if (roleClause) query = query.or(roleClause);
-
-  const serviceClause = ilikeOrClause(["service_type", "opportunity_type"], structured.serviceTypes);
-  if (serviceClause) query = query.or(serviceClause);
+  if (textSignalClause) query = query.or(textSignalClause);
 
   // Exclusions only run against `title`, which is NOT NULL. Applying a
   // NOT ILIKE to a nullable column would drop every row where it is null,

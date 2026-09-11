@@ -120,7 +120,9 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
     if (!name.trim() && !queryText.trim()) return;
     const runKey = filters.vertical ? VERTICAL_TO_RUN_KEY[filters.vertical] : undefined;
     if (!runKey) {
-      setError("Pick a vertical below before running — it couldn't be inferred from this query.");
+      setError(
+        `This query doesn't match any of the ${Object.keys(VERTICAL_TO_RUN_KEY).length} pipelines this app can run (${Object.keys(VERTICAL_TO_RUN_KEY).join(", ")}). Pick one from the "Vertical" dropdown at the top of the filters below, or "Save for later" / "Preview matching leads" instead — those don't need a vertical.`
+      );
       return;
     }
 
@@ -202,8 +204,14 @@ export function SavedSearchForm({ aiStatus }: { aiStatus?: UseCaseStatus }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Button type="button" size="sm" disabled={running || saving} onClick={onRun}>
-              {running ? "Running…" : "Run"}
+            <Button
+              type="button"
+              size="sm"
+              disabled={running || saving}
+              onClick={onRun}
+              title="Saves this search and starts the live discovery pipeline for its vertical, fetching new leads"
+            >
+              {running ? "Running…" : "Run discovery pipeline"}
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={saving || running || pending} onClick={onSave}>
               {saving ? "Saving…" : saved ? "Saved ✓" : "Save for later"}

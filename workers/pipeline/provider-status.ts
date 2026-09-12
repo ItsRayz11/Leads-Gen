@@ -1,8 +1,9 @@
-import type { Vertical } from "@leads/core";
+import { LIVE_SEARCH_PROVIDERS, LIVE_SEARCH_PROVIDER_LABELS, type Vertical } from "@leads/core";
 import { getProviderSecret } from "@leads/db/secrets.js";
 import { listTargetCompanies } from "@leads/db/target-companies.js";
 import { isProviderEnabled, type GatedProvider } from "../provider-gate.js";
 import { readJsonConfig } from "../config-files.js";
+import { LIVE_SEARCH_PROVIDER_INFO } from "../connectors/live-search/shared.js";
 
 /**
  * Whether a connector can actually act on one kind of filter, and why not
@@ -94,8 +95,42 @@ async function keyedProviderStatus(
   return { hasKey, enabled };
 }
 
+const LIVE_SEARCH_CAPABILITIES: ProviderCapabilities = {
+  industry: cap(true, "asked for directly, not a structured filter"),
+  geography: cap(true, "asked for directly, not a structured filter"),
+  jobTitle: cap(true, "asked for directly, not a structured filter"),
+  companySize: cap(false, "live search results carry no headcount data"),
+};
+
 /**
- * One row per connector across all three verticals — the same reasoning
+ * Status for just the 3 live-search connectors — split out from
+ * getAllProviderStatuses so run-vertical4-live-search.ts doesn't have to pay
+ * for the unrelated job-board/Twitter/agency checks (each its own DB query or
+ * file read) on every live-search run just to read 3 rows out of the result.
+ * Reads the same LIVE_SEARCH_PROVIDER_INFO the connectors themselves use for
+ * their env var/secret name, and the same LIVE_SEARCH_PROVIDER_LABELS the
+ * provider picker UI renders, so this can't drift from either.
+ */
+export async function getLiveSearchProviderStatuses(): Promise<ProviderStatus[]> {
+  return Promise.all(
+    LIVE_SEARCH_PROVIDERS.map(async (provider) => {
+      const { connectorName, envVar, secretName } = LIVE_SEARCH_PROVIDER_INFO[provider];
+      const label = LIVE_SEARCH_PROVIDER_LABELS[provider];
+      const hasKey = Boolean(process.env[envVar]) || Boolean(await getProviderSecret(secretName));
+      return {
+        connector: connectorName,
+        label: `Live web search — ${label}`,
+        vertical: "live_search" as const,
+        configured: hasKey,
+        reason: hasKey ? `ready — searches live via ${label}` : "no API key configured — add one on the Integrations page",
+        capabilities: LIVE_SEARCH_CAPABILITIES,
+      };
+    })
+  );
+}
+
+/**
+ * One row per connector across all four verticals — the same reasoning
  * each `zeroResultNote()` computes after a zero-signal run, made callable
  * proactively so the Discovery page can show it before anyone clicks Run.
  */
@@ -205,30 +240,7 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     capabilities: twitterCapabilities,
   });
 
-  const LIVE_SEARCH_CAPABILITIES = {
-    industry: cap(true, "asked for directly, not a structured filter"),
-    geography: cap(true, "asked for directly, not a structured filter"),
-    jobTitle: cap(true, "asked for directly, not a structured filter"),
-    companySize: cap(false, "live search results carry no headcount data"),
-  };
-
-  const LIVE_SEARCH_CONNECTORS: { connector: string; name: string; envVar: string; secretName: string }[] = [
-    { connector: "gemini-web-search", name: "Gemini", envVar: "GOOGLE_AI_API_KEY", secretName: "google" },
-    { connector: "openai-web-search", name: "OpenAI", envVar: "OPENAI_API_KEY", secretName: "openai" },
-    { connector: "anthropic-web-search", name: "Anthropic", envVar: "ANTHROPIC_API_KEY", secretName: "anthropic" },
-  ];
-
-  for (const { connector, name, envVar, secretName } of LIVE_SEARCH_CONNECTORS) {
-    const hasKey = Boolean(process.env[envVar]) || Boolean(await getProviderSecret(secretName));
-    statuses.push({
-      connector,
-      label: `Live web search (${name})`,
-      vertical: "live_search",
-      configured: hasKey,
-      reason: hasKey ? `ready — searches live via ${name}` : "no API key configured — add one on the Integrations page",
-      capabilities: LIVE_SEARCH_CAPABILITIES,
-    });
-  }
+  statuses.push(...(await getLiveSearchProviderStatuses()));
 
   return statuses;
 }

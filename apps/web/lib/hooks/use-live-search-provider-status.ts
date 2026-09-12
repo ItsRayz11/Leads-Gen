@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { LiveSearchProvider } from "../ai/search-filters";
+import { fetchJsonSafe } from "./fetch-json";
 
 export interface LiveSearchProviderStatusState {
   /** Undefined until the fetch resolves — treat as "unknown yet", not "not configured". */
@@ -16,15 +17,12 @@ export function useLiveSearchProviderStatus(): LiveSearchProviderStatusState {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/live-search-providers");
-        const data = await res.json();
-        if (cancelled) return;
-        setState({ configured: res.ok ? (data.configured ?? {}) : {}, loading: false });
-      } catch {
-        if (cancelled) return;
-        setState({ configured: {}, loading: false });
-      }
+      const result = await fetchJsonSafe<{ configured?: Partial<Record<LiveSearchProvider, boolean>> }>(
+        "/api/live-search-providers",
+        "live-search provider status"
+      );
+      if (cancelled) return;
+      setState({ configured: result.ok ? (result.data.configured ?? {}) : {}, loading: false });
     })();
     return () => {
       cancelled = true;

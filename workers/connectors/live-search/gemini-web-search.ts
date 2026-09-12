@@ -1,11 +1,4 @@
-import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import {
-  buildLiveSearchPrompt,
-  fetchJson,
-  liveSearchResultsToSignals,
-  parseLiveSearchResults,
-  resolveApiKey,
-} from "./shared.js";
+import { createLiveSearchConnector } from "./shared.js";
 
 const ENDPOINT_MODEL = "gemini-3.6-flash";
 
@@ -15,28 +8,20 @@ const ENDPOINT_MODEL = "gemini-3.6-flash";
  * connectors (see openai-web-search.ts, anthropic-web-search.ts) a
  * live_search config can select between. See run-vertical4-live-search.ts for
  * how its results reach the same dedupe/scoring/upsert pipeline as every
- * other vertical.
+ * other vertical, and shared.ts's createLiveSearchConnector for the fetch/
+ * parse/signal-mapping logic every provider connector shares (including
+ * where its connector name and API key come from — LIVE_SEARCH_PROVIDER_INFO
+ * in shared.ts, not repeated here).
  *
- * Requires a Google AI (Gemini) API key — the same one search interpretation
- * already uses (env `GOOGLE_AI_API_KEY` or the Integrations page). Grounding
- * is a Gemini-specific feature, so this bypasses the multi-provider
+ * Grounding is a Gemini-specific feature, so this bypasses the multi-provider
  * ai_provider_settings routing and always calls Google directly.
  */
-export const geminiWebSearchConnector: SourceConnector = {
-  name: "gemini-web-search",
-  vertical: ["live_search"],
-  enabled: true,
-  requiresApiKey: true,
-  async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const apiKey = await resolveApiKey("GOOGLE_AI_API_KEY", "google");
-    if (!apiKey) return [];
-
-    const prompt = buildLiveSearchPrompt(config);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${ENDPOINT_MODEL}:generateContent?key=${apiKey}`;
-
-    const data = (await fetchJson(
-      url,
-      {
+export const geminiWebSearchConnector = createLiveSearchConnector({
+  provider: "google",
+  buildRequest(apiKey, prompt) {
+    return {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${ENDPOINT_MODEL}:generateContent?key=${apiKey}`,
+      init: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -45,11 +30,9 @@ export const geminiWebSearchConnector: SourceConnector = {
           generationConfig: { temperature: 0.2 },
         }),
       },
-      "Gemini web search"
-    )) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    const results = parseLiveSearchResults(text);
-    return liveSearchResultsToSignals(results, "gemini-web-search", config);
+    };
   },
-};
+  extractText(data: { candidates?: { content?: { parts?: { text?: string }[] } }[] }) {
+    return data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+  },
+});

@@ -12,10 +12,14 @@ import {
   type StructuredSearchFilters,
 } from "../../../lib/ai/search-filters";
 
-/** Truncates a long value list to a few items so a chip never wraps to multiple lines. */
-function summarizeValues(values: string[], max = 3): string {
-  if (values.length <= max) return values.join(", ");
-  return `${values.slice(0, max).join(", ")} +${values.length - max} more`;
+/** How many values a preview chip shows before collapsing the rest into "+N more" — referenced by both the truncation and the "is this chip truncated" check, so they can't drift apart. */
+const PREVIEW_VALUE_MAX = 3;
+
+/** A chip's display text for one filter field — the full value list, or truncated to PREVIEW_VALUE_MAX with a "+N more" suffix. */
+function chipText(value: StructuredSearchFilters[keyof StructuredSearchFilters], full: boolean): string {
+  if (!Array.isArray(value)) return String(value).replace(/_/g, " ");
+  if (full || value.length <= PREVIEW_VALUE_MAX) return value.join(", ");
+  return `${value.slice(0, PREVIEW_VALUE_MAX).join(", ")} +${value.length - PREVIEW_VALUE_MAX} more`;
 }
 
 /**
@@ -37,32 +41,28 @@ function FilterChips({ filters }: { filters: StructuredSearchFilters }) {
     return Array.isArray(value) ? value.length > 0 : value !== null;
   });
 
-  const summaryChip = (key: keyof StructuredSearchFilters, label: string) => {
-    const value = filters[key];
-    const text = Array.isArray(value) ? summarizeValues(value) : String(value).replace(/_/g, " ");
-    return (
-      <Badge key={key} variant="outline">
-        {label}: {text}
-      </Badge>
-    );
-  };
+  const renderChip = (key: keyof StructuredSearchFilters, label: string, full: boolean) => (
+    <Badge key={key} variant="outline">
+      {label}: {chipText(filters[key], full)}
+    </Badge>
+  );
 
   const preview = populated.slice(0, 2);
   const rest = populated.slice(2);
-  // A preview chip's own values can be truncated (summarizeValues caps at 3)
-  // even with only 1-2 categories populated total, in which case `rest` is
-  // empty but there's still more to see — the toggle has to account for
-  // that case too, not just "a 3rd+ category exists".
+  // A preview chip's own values can be truncated even with only 1-2
+  // categories populated total, in which case `rest` is empty but there's
+  // still more to see — the toggle has to account for that case too, not
+  // just "a 3rd+ category exists".
   const previewIsTruncated = preview.some(([key]) => {
     const value = filters[key];
-    return Array.isArray(value) && value.length > 3;
+    return Array.isArray(value) && value.length > PREVIEW_VALUE_MAX;
   });
   const hasMore = rest.length > 0 || previewIsTruncated;
 
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap gap-1">
-        {preview.map(([key, label]) => summaryChip(key, label))}
+        {preview.map(([key, label]) => renderChip(key, label, false))}
         {rest.length === 0 && preview.length === 0 && (
           <span className="text-xs text-muted-foreground">No structured filters yet.</span>
         )}
@@ -73,15 +73,7 @@ function FilterChips({ filters }: { filters: StructuredSearchFilters }) {
             {rest.length > 0 ? `+${rest.length} more filter${rest.length === 1 ? "" : "s"}` : "Show full values"}
           </summary>
           <div className="mt-1 flex flex-wrap gap-1">
-            {[...preview, ...rest].map(([key, label]) => {
-              const value = filters[key];
-              const text = Array.isArray(value) ? value.join(", ") : String(value).replace(/_/g, " ");
-              return (
-                <Badge key={key} variant="outline">
-                  {label}: {text}
-                </Badge>
-              );
-            })}
+            {[...preview, ...rest].map(([key, label]) => renderChip(key, label, true))}
           </div>
         </details>
       )}

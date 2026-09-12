@@ -4,5 +4,5 @@ export { runVertical3CardAffiliate } from "./pipeline/run-vertical3-card-affilia
 export { runVertical4LiveSearch } from "./pipeline/run-vertical4-live-search.js";
 export type { ProgressEvent, ProgressReporter, RunStage } from "./pipeline/progress.js";
 export type { ConnectorCount, RunResult } from "./pipeline/shared.js";
-export { getAllProviderStatuses } from "./pipeline/provider-status.js";
+export { getAllProviderStatuses, getLiveSearchProviderStatuses } from "./pipeline/provider-status.js";
 export type { ProviderCapabilities, ProviderCapability, ProviderStatus } from "./pipeline/provider-status.js";

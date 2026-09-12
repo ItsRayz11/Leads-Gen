@@ -133,9 +133,11 @@ export function SearchFilterEditor({
         </Select>
         {!filters.vertical && (
           <p className="text-xs text-muted-foreground">
-            The AI couldn&apos;t match this request to one of the {VERTICALS.length} pipelines this app can
-            actually run ({VERTICALS.map((v) => v.replace(/_/g, " ")).join(", ")}). Pick the closest one above to
-            enable Run, or leave it blank to only save the search / preview against existing leads.
+            {source === "keyword_fallback"
+              ? `No AI provider is configured, so this was matched by keyword only, which can't judge which pipeline fits. Configure one on the Integrations page for a real match, or pick`
+              : `The AI couldn't match this request to one of the ${VERTICALS.length} pipelines this app can actually run (${VERTICALS.map((v) => v.replace(/_/g, " ")).join(", ")}). Pick`}{" "}
+            the closest one above to enable Run, or leave it blank to only save the search / preview against
+            existing leads.
           </p>
         )}
       </div>

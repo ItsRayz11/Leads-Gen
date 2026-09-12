@@ -118,8 +118,10 @@ export default async function DiscoveryPage() {
           <code className="text-foreground">npm run run:vertical1</code>,{" "}
           <code className="text-foreground">npm run run:vertical2</code>,{" "}
           <code className="text-foreground">npm run run:vertical3</code>, or{" "}
-          <code className="text-foreground">npm run run:vertical4</code> — or the scheduled GitHub Action —
-          writing directly into this same database. Results appear in All Leads / Pipeline once a run completes.
+          <code className="text-foreground">npm run run:vertical4</code>, writing directly into this same database.
+          Hiring/general/card-affiliate also run on a schedule via a GitHub Action — live web search doesn&apos;t
+          have one yet, so it only runs when triggered here or from the CLI. Results appear in All Leads / Pipeline
+          once a run completes.
           <br />
           <span className="text-foreground">Live web search</span> is different from the other three: instead of
           reading a fixed set of sites, it runs a real, live web search for whatever your query says and only

@@ -1,5 +1,5 @@
 import type { Json } from "@leads/db/types.js";
-import { LIVE_SEARCH_PROVIDERS } from "@leads/core";
+import { DEFAULT_LIVE_SEARCH_PROVIDERS, LIVE_SEARCH_PROVIDERS } from "@leads/core";
 export { LIVE_SEARCH_PROVIDERS, LIVE_SEARCH_PROVIDER_LABELS, type LiveSearchProvider } from "@leads/core";
 
 /**
@@ -349,10 +349,14 @@ export function normalizeFilters(input: unknown): StructuredSearchFilters {
 
   const liveSearchProvidersRaw = toStringArray(raw.liveSearchProviders, LIVE_SEARCH_PROVIDERS);
   // A live_search config with no explicit provider choice still needs to run
-  // something — default to Google/Gemini alone, the one guaranteed already
+  // something — DEFAULT_LIVE_SEARCH_PROVIDERS (also read by
+  // run-vertical4-live-search.ts, so the two can't disagree on what "the
+  // default" means) is Google/Gemini alone, the one guaranteed already
   // configured (search interpretation depends on it too).
   const liveSearchProviders =
-    vertical === "live_search" && liveSearchProvidersRaw.length === 0 ? ["google"] : liveSearchProvidersRaw;
+    vertical === "live_search" && liveSearchProvidersRaw.length === 0
+      ? DEFAULT_LIVE_SEARCH_PROVIDERS
+      : liveSearchProvidersRaw;
 
   return {
     keywords: toStringArray(raw.keywords),

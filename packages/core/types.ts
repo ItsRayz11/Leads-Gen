@@ -92,6 +92,9 @@ export const LIVE_SEARCH_PROVIDER_LABELS: Record<LiveSearchProvider, string> = {
   anthropic: "Anthropic (Claude)",
 };
 
+/** google/Gemini is the one guaranteed configured (search interpretation depends on it too) — the safe default when a config picks none explicitly. Exported once here so normalizeFilters and runVertical4LiveSearch can't drift apart on what "the default" means. */
+export const DEFAULT_LIVE_SEARCH_PROVIDERS: LiveSearchProvider[] = ["google"];
+
 export interface SearchConfig {
   vertical: Vertical;
   keywords?: string[];

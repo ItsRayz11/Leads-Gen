@@ -1,11 +1,4 @@
-import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import {
-  buildLiveSearchPrompt,
-  fetchJson,
-  liveSearchResultsToSignals,
-  parseLiveSearchResults,
-  resolveApiKey,
-} from "./shared.js";
+import { createLiveSearchConnector } from "./shared.js";
 
 const ENDPOINT_MODEL = "gpt-4o-mini";
 
@@ -26,24 +19,16 @@ function extractOutputText(data: {
 /**
  * OpenAI counterpart to gemini-web-search.ts: uses the Responses API's
  * built-in `web_search` tool instead of Gemini's Google Search grounding.
- * Same prompt, same result shape, same downstream pipeline — only the API
- * call and response unwrapping differ, because each provider's web-search
- * tool has its own request/response shape.
+ * Same prompt, same result shape, same downstream pipeline (see shared.ts's
+ * createLiveSearchConnector) — only the request shape and response
+ * unwrapping differ, because each provider's web-search tool has its own.
  */
-export const openaiWebSearchConnector: SourceConnector = {
-  name: "openai-web-search",
-  vertical: ["live_search"],
-  enabled: true,
-  requiresApiKey: true,
-  async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const apiKey = await resolveApiKey("OPENAI_API_KEY", "openai");
-    if (!apiKey) return [];
-
-    const prompt = buildLiveSearchPrompt(config);
-
-    const data = (await fetchJson(
-      "https://api.openai.com/v1/responses",
-      {
+export const openaiWebSearchConnector = createLiveSearchConnector({
+  provider: "openai",
+  buildRequest(apiKey, prompt) {
+    return {
+      url: "https://api.openai.com/v1/responses",
+      init: {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -53,11 +38,7 @@ export const openaiWebSearchConnector: SourceConnector = {
           temperature: 0.2,
         }),
       },
-      "OpenAI web search"
-    )) as { output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
-
-    const text = extractOutputText(data);
-    const results = parseLiveSearchResults(text);
-    return liveSearchResultsToSignals(results, "openai-web-search", config);
+    };
   },
-};
+  extractText: extractOutputText,
+});

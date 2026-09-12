@@ -1,4 +1,4 @@
-import type { LiveSearchProvider, RawSignal, SourceConnector } from "@leads/core";
+import { DEFAULT_LIVE_SEARCH_PROVIDERS, type LiveSearchProvider, type RawSignal, type SourceConnector } from "@leads/core";
 import { geminiWebSearchConnector } from "../connectors/live-search/gemini-web-search.js";
 import { openaiWebSearchConnector } from "../connectors/live-search/openai-web-search.js";
 import { anthropicWebSearchConnector } from "../connectors/live-search/anthropic-web-search.js";
@@ -7,16 +7,13 @@ import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical4LiveSearchRules } from "../scoring/rules/vertical4-live-search.js";
 import { isRunAsScript, runStatus, type ConnectorCount, type RunResult } from "./shared.js";
 import { errorMessage, safeReporter, type ProgressReporter } from "./progress.js";
-import { getAllProviderStatuses, type ProviderStatus } from "./provider-status.js";
+import { getLiveSearchProviderStatuses, type ProviderStatus } from "./provider-status.js";
 
 const CONNECTOR_BY_PROVIDER: Record<LiveSearchProvider, SourceConnector> = {
   google: geminiWebSearchConnector,
   openai: openaiWebSearchConnector,
   anthropic: anthropicWebSearchConnector,
 };
-
-/** Gemini only — guaranteed configured already (search interpretation needs it), so a config with no explicit choice still runs rather than silently doing nothing. */
-const DEFAULT_PROVIDERS: LiveSearchProvider[] = ["google"];
 
 /** A readable name for one config's keyword set, used in progress labels. */
 function configLabel(keywords: string[] | undefined): string {
@@ -51,11 +48,11 @@ export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Pro
     return { signalsFound: 0, connectorCounts, leadsUpserted: [], note, status: "completed_with_warnings" };
   }
 
-  const providerStatuses = await getAllProviderStatuses();
+  const providerStatuses = await getLiveSearchProviderStatuses();
   const statusFor = (connectorName: string): ProviderStatus | undefined =>
     providerStatuses.find((s) => s.connector === connectorName);
 
-  const providerCount = new Set(configs.flatMap((c) => c.liveSearchProviders ?? DEFAULT_PROVIDERS)).size;
+  const providerCount = new Set(configs.flatMap((c) => c.liveSearchProviders ?? DEFAULT_LIVE_SEARCH_PROVIDERS)).size;
   report({
     type: "stage",
     stage: "connectors",
@@ -63,7 +60,7 @@ export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Pro
   });
 
   for (const config of configs) {
-    const providers = config.liveSearchProviders?.length ? config.liveSearchProviders : DEFAULT_PROVIDERS;
+    const providers = config.liveSearchProviders?.length ? config.liveSearchProviders : DEFAULT_LIVE_SEARCH_PROVIDERS;
     // Providers for the same config are independent network calls to
     // different services — run them concurrently so picking all three costs
     // roughly the slowest single call's time, not the sum of all three.

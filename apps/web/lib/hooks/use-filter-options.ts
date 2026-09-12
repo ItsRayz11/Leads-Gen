@@ -10,6 +10,7 @@ import {
   ROLE_SUGGESTIONS,
   SERVICE_TYPE_SUGGESTIONS,
 } from "../ai/search-filters";
+import { fetchJsonSafe } from "./fetch-json";
 
 export interface FilterOptionsState {
   industries: readonly string[];
@@ -46,19 +47,16 @@ export function useFilterOptions(): FilterOptionsState {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/filter-options");
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok) {
-          setState((prev) => ({ ...prev, loading: false, error: data.error ?? "Could not load filter options." }));
-          return;
-        }
-        setState({ ...data.options, loading: false, error: null });
-      } catch {
-        if (cancelled) return;
-        setState((prev) => ({ ...prev, loading: false, error: "Could not reach the filter options endpoint." }));
+      const result = await fetchJsonSafe<{ options: Omit<FilterOptionsState, "loading" | "error"> }>(
+        "/api/filter-options",
+        "filter options"
+      );
+      if (cancelled) return;
+      if (!result.ok) {
+        setState((prev) => ({ ...prev, loading: false, error: result.error }));
+        return;
       }
+      setState({ ...result.data.options, loading: false, error: null });
     })();
     return () => {
       cancelled = true;

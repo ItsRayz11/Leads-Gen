@@ -212,41 +212,23 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     companySize: cap(false, "live search results carry no headcount data"),
   };
 
-  const hasGoogleKey = Boolean(process.env.GOOGLE_AI_API_KEY) || Boolean(await getProviderSecret("google"));
-  statuses.push({
-    connector: "gemini-web-search",
-    label: "Live web search (Gemini)",
-    vertical: "live_search",
-    configured: hasGoogleKey,
-    reason: hasGoogleKey
-      ? "ready — searches live via Google, grounded by Gemini"
-      : "no Google AI API key configured — add one on the Integrations page",
-    capabilities: LIVE_SEARCH_CAPABILITIES,
-  });
+  const LIVE_SEARCH_CONNECTORS: { connector: string; name: string; envVar: string; secretName: string }[] = [
+    { connector: "gemini-web-search", name: "Gemini", envVar: "GOOGLE_AI_API_KEY", secretName: "google" },
+    { connector: "openai-web-search", name: "OpenAI", envVar: "OPENAI_API_KEY", secretName: "openai" },
+    { connector: "anthropic-web-search", name: "Anthropic", envVar: "ANTHROPIC_API_KEY", secretName: "anthropic" },
+  ];
 
-  const hasOpenaiKey = Boolean(process.env.OPENAI_API_KEY) || Boolean(await getProviderSecret("openai"));
-  statuses.push({
-    connector: "openai-web-search",
-    label: "Live web search (OpenAI)",
-    vertical: "live_search",
-    configured: hasOpenaiKey,
-    reason: hasOpenaiKey
-      ? "ready — searches live via OpenAI's web search tool"
-      : "no OpenAI API key configured — add one on the Integrations page",
-    capabilities: LIVE_SEARCH_CAPABILITIES,
-  });
-
-  const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY) || Boolean(await getProviderSecret("anthropic"));
-  statuses.push({
-    connector: "anthropic-web-search",
-    label: "Live web search (Anthropic)",
-    vertical: "live_search",
-    configured: hasAnthropicKey,
-    reason: hasAnthropicKey
-      ? "ready — searches live via Claude's web search tool"
-      : "no Anthropic API key configured — add one on the Integrations page",
-    capabilities: LIVE_SEARCH_CAPABILITIES,
-  });
+  for (const { connector, name, envVar, secretName } of LIVE_SEARCH_CONNECTORS) {
+    const hasKey = Boolean(process.env[envVar]) || Boolean(await getProviderSecret(secretName));
+    statuses.push({
+      connector,
+      label: `Live web search (${name})`,
+      vertical: "live_search",
+      configured: hasKey,
+      reason: hasKey ? `ready — searches live via ${name}` : "no API key configured — add one on the Integrations page",
+      capabilities: LIVE_SEARCH_CAPABILITIES,
+    });
+  }
 
   return statuses;
 }

@@ -46,11 +46,13 @@ export async function loadSearchConfigs(vertical: Vertical): Promise<SearchConfi
   }
 
   const fallbackFile = FALLBACK_CONFIG_FILES[vertical];
-  if (!fallbackFile) return [{ vertical }];
+  // No rows and no bundled fallback file: the caller reports "no search
+  // configs" rather than running with an empty, contentless config (only
+  // "general" ships a fallback file — hiring/card_affiliate never call this
+  // function at all, and live_search has nothing sensible to run blind).
+  if (!fallbackFile) return [];
 
   const fallback = readJsonConfig<{ configs: Omit<SearchConfig, "vertical">[] }>(fallbackFile);
-  // No rows and no bundled fallback file: the caller reports "no search
-  // configs" rather than this throwing mid-run.
   if (!fallback) return [];
   return fallback.configs.map((c) => ({ vertical, ...c }));
 }

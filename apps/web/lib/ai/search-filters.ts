@@ -359,7 +359,12 @@ export function normalizeFilters(input: unknown): StructuredSearchFilters {
     excludeKeywords: toStringArray(raw.excludeKeywords),
     roleKeywords: toStringArray(raw.roleKeywords),
     industries: toStringArray(raw.industries),
-    countries: toStringArray(raw.countries, undefined, 5),
+    // The AI prompt is told to guess at most 5 countries (search-interpret.ts)
+    // — that's a generation-time guardrail against an AI over-guessing, not a
+    // structural limit. Capping it again here would also silently truncate a
+    // user's own manual selection on every later save/reinterpret/promote,
+    // which is a different (and unwanted) thing.
+    countries: toStringArray(raw.countries),
     regions: toStringArray(raw.regions),
     companySizes: toStringArray(raw.companySizes),
     signalTypes: toStringArray(raw.signalTypes),

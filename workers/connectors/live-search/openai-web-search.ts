@@ -1,19 +1,13 @@
 import type { RawSignal, SearchConfig, SourceConnector } from "@leads/core";
-import { getProviderSecret } from "@leads/db/secrets.js";
 import {
   buildLiveSearchPrompt,
-  createCooldownGuard,
+  fetchJson,
   liveSearchResultsToSignals,
   parseLiveSearchResults,
+  resolveApiKey,
 } from "./shared.js";
 
 const ENDPOINT_MODEL = "gpt-4o-mini";
-const cooldown = createCooldownGuard();
-
-async function resolveApiKey(): Promise<string | null> {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
-  return getProviderSecret("openai");
-}
 
 /** Concatenates every output_text chunk from a Responses API result — the raw JSON has no `output_text` convenience field, unlike the SDK. */
 function extractOutputText(data: {
@@ -42,34 +36,26 @@ export const openaiWebSearchConnector: SourceConnector = {
   enabled: true,
   requiresApiKey: true,
   async fetch(config: SearchConfig): Promise<RawSignal[]> {
-    const apiKey = await resolveApiKey();
+    const apiKey = await resolveApiKey("OPENAI_API_KEY", "openai");
     if (!apiKey) return [];
-    if (cooldown.isCoolingDown(config)) {
-      console.warn("[openai-web-search] skipped — same search ran within the cooldown window");
-      return [];
-    }
-    cooldown.mark(config);
 
     const prompt = buildLiveSearchPrompt(config);
 
-    const res = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: ENDPOINT_MODEL,
-        input: prompt,
-        tools: [{ type: "web_search" }],
-        temperature: 0.2,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`OpenAI web search error ${res.status}: ${body.slice(0, 300)}`);
-    }
+    const data = (await fetchJson(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: ENDPOINT_MODEL,
+          input: prompt,
+          tools: [{ type: "web_search" }],
+          temperature: 0.2,
+        }),
+      },
+      "OpenAI web search"
+    )) as { output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
 
-    const data = (await res.json()) as {
-      output?: { type?: string; content?: { type?: string; text?: string }[] }[];
-    };
     const text = extractOutputText(data);
     const results = parseLiveSearchResults(text);
     return liveSearchResultsToSignals(results, "openai-web-search", config);

@@ -49,6 +49,15 @@ function FilterChips({ filters }: { filters: StructuredSearchFilters }) {
 
   const preview = populated.slice(0, 2);
   const rest = populated.slice(2);
+  // A preview chip's own values can be truncated (summarizeValues caps at 3)
+  // even with only 1-2 categories populated total, in which case `rest` is
+  // empty but there's still more to see — the toggle has to account for
+  // that case too, not just "a 3rd+ category exists".
+  const previewIsTruncated = preview.some(([key]) => {
+    const value = filters[key];
+    return Array.isArray(value) && value.length > 3;
+  });
+  const hasMore = rest.length > 0 || previewIsTruncated;
 
   return (
     <div className="space-y-1">
@@ -58,10 +67,10 @@ function FilterChips({ filters }: { filters: StructuredSearchFilters }) {
           <span className="text-xs text-muted-foreground">No structured filters yet.</span>
         )}
       </div>
-      {rest.length > 0 && (
+      {hasMore && (
         <details className="text-xs">
           <summary className="cursor-pointer select-none text-primary hover:underline">
-            +{rest.length} more filter{rest.length === 1 ? "" : "s"}
+            {rest.length > 0 ? `+${rest.length} more filter${rest.length === 1 ? "" : "s"}` : "Show full values"}
           </summary>
           <div className="mt-1 flex flex-wrap gap-1">
             {[...preview, ...rest].map(([key, label]) => {

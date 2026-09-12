@@ -133,7 +133,7 @@ describe("groupSignalsByCompany", () => {
   });
 
   it("keys every vertical the app supports", () => {
-    const verticals: Vertical[] = ["hiring", "general", "card_affiliate"];
+    const verticals: Vertical[] = ["hiring", "general", "card_affiliate", "live_search"];
     expect(keys(verticals.map((vertical) => signal({ vertical, website: "acme.com" })))).toEqual(
       verticals.map((vertical) => `${vertical}::acme.com`)
     );

@@ -136,12 +136,21 @@ export async function listLeads(
   // Keywords, role titles and service types all describe the same thing from
   // different angles ("what should this lead's text mention"), so a lead
   // matching ANY one of them is a candidate — requiring all three at once
-  // (three separate ANDed .or() calls) made realistic multi-field searches
-  // zero out even when good matches existed for some of the fields.
-  const textSignalClause = ilikeOrClause(
-    ["title", "buying_signal_summary", "qualification_summary", "service_type", "opportunity_type"],
-    [...structured.keywords, ...structured.roleKeywords, ...structured.serviceTypes]
-  );
+  // (three separate ANDed .or() calls, PostgREST ANDs across calls) made
+  // realistic multi-field searches zero out even when good matches existed
+  // for some of the fields. Each still only searches the columns it actually
+  // means, though: joining them into one string of clauses (comma = OR
+  // *within* a single .or() call) gets the OR-across-categories relationship
+  // without collapsing roleKeywords/serviceTypes onto columns they were never
+  // scoped to (a stray keyword shouldn't match the internal opportunity_type
+  // tag, and a role title shouldn't match a disqualifying qualification note).
+  const textSignalClause = [
+    ilikeOrClause(["title", "buying_signal_summary", "qualification_summary", "service_type"], structured.keywords),
+    ilikeOrClause(["title", "buying_signal_summary"], structured.roleKeywords),
+    ilikeOrClause(["service_type", "opportunity_type"], structured.serviceTypes),
+  ]
+    .filter((clause): clause is string => Boolean(clause))
+    .join(",");
   if (textSignalClause) query = query.or(textSignalClause);
 
   // Exclusions only run against `title`, which is NOT NULL. Applying a

@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   const vertical = body?.vertical;
   if (!isVertical(vertical)) {
     return NextResponse.json(
-      { error: "vertical must be one of vertical1, vertical2, vertical3, vertical4" },
+      { error: `vertical must be one of ${Object.keys(RUNNERS).join(", ")}` },
       { status: 400 }
     );
   }

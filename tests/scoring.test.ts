@@ -12,6 +12,7 @@ import {
 import { vertical1HiringRules } from "../workers/scoring/rules/vertical1-hiring";
 import { vertical2GeneralRules } from "../workers/scoring/rules/vertical2-general";
 import { vertical3CardAffiliateRules } from "../workers/scoring/rules/vertical3-card-affiliate";
+import { vertical4LiveSearchRules } from "../workers/scoring/rules/vertical4-live-search";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -96,6 +97,7 @@ describe("dimension configuration", () => {
     ["hiring", vertical1HiringRules],
     ["general", vertical2GeneralRules],
     ["card_affiliate", vertical3CardAffiliateRules],
+    ["live_search", vertical4LiveSearchRules],
   ] as const)("weights every dimension %s actually scores", (vertical, rules) => {
     const weights = VERTICAL_DIMENSION_WEIGHTS[vertical];
     for (const dimension of new Set(rules.map((r) => r.dimension))) {
@@ -109,6 +111,7 @@ describe("dimension configuration", () => {
     ["hiring", vertical1HiringRules],
     ["general", vertical2GeneralRules],
     ["card_affiliate", vertical3CardAffiliateRules],
+    ["live_search", vertical4LiveSearchRules],
   ] as const)("caps every countable rule in %s", (_vertical, rules) => {
     // An uncapped countable rule has no maximum, so its dimension would have
     // no denominator to normalize against.

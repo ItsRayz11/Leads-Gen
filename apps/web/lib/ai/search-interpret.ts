@@ -164,12 +164,14 @@ export function heuristicFilters(queryText: string, vertical?: string | null): S
   const minScore = scoreMatch ? Number(scoreMatch[1]) : null;
 
   const signalTypes = SIGNAL_PHRASES.filter(([re]) => re.test(lower)).map(([, type]) => type);
-  // Same principle as the AI prompt: a request with actual content to search
-  // for defaults to "live_search" rather than null, since that vertical can
-  // act on almost any concrete request. Only a genuinely empty query stays
-  // without a vertical — there's nothing to run a search for.
-  const detectedVertical =
-    vertical ?? VERTICAL_PHRASES.find(([re]) => re.test(lower))?.[1] ?? (text ? "live_search" : null);
+  // Unlike the AI prompt, this path runs with no model available at all — it
+  // can only phrase-match, not judge whether a request is concrete enough to
+  // search for. Defaulting a vague query straight into a paid live-search
+  // vertical here (rather than the AI path, which at least made a real call)
+  // would silently opt a user into billed API calls with no real judgment
+  // behind the guess. Stay conservative: only an explicit phrase match sets a
+  // vertical; everything else stays null, same as before live_search existed.
+  const detectedVertical = vertical ?? VERTICAL_PHRASES.find(([re]) => re.test(lower))?.[1] ?? null;
 
   // Words already consumed as a structured filter must not also land in
   // `keywords`: keywords are OR-ed together, so leaving "tier" or "score" in

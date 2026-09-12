@@ -64,28 +64,37 @@ export async function runVertical4LiveSearch(onProgress?: ProgressReporter): Pro
 
   for (const config of configs) {
     const providers = config.liveSearchProviders?.length ? config.liveSearchProviders : DEFAULT_PROVIDERS;
-    for (const provider of providers) {
-      const connector = CONNECTOR_BY_PROVIDER[provider];
-      const label = `${connector.name} · ${configLabel(config.keywords)}`;
-      if (!connector.enabled) {
-        report({ type: "connector:skipped", connector: label, reason: "disabled" });
-        continue;
-      }
-      report({ type: "connector:start", connector: label });
-      try {
-        const signals = await connector.fetch(config);
-        const status = statusFor(connector.name);
-        const note = signals.length === 0 && status && !status.configured ? status.reason : undefined;
-        connectorCounts.push({ connector: label, signalsFound: signals.length, note });
-        report({ type: "connector:done", connector: label, signalsFound: signals.length, note });
-        allSignals.push(...signals);
-      } catch (err) {
-        const error = errorMessage(err);
-        console.error(`[${connector.name}] failed for config "${config.keywords?.join(", ")}":`, err);
-        connectorCounts.push({ connector: label, signalsFound: 0, error });
-        report({ type: "connector:error", connector: label, error });
-      }
-    }
+    // Providers for the same config are independent network calls to
+    // different services — run them concurrently so picking all three costs
+    // roughly the slowest single call's time, not the sum of all three.
+    // Configs themselves stay sequential, which is plenty of concurrency for
+    // the handful of configs a real workspace has.
+    const perProvider = await Promise.all(
+      providers.map(async (provider): Promise<RawSignal[]> => {
+        const connector = CONNECTOR_BY_PROVIDER[provider];
+        const label = `${connector.name} · ${configLabel(config.keywords)}`;
+        if (!connector.enabled) {
+          report({ type: "connector:skipped", connector: label, reason: "disabled" });
+          return [];
+        }
+        report({ type: "connector:start", connector: label });
+        try {
+          const signals = await connector.fetch(config);
+          const status = statusFor(connector.name);
+          const note = signals.length === 0 && status && !status.configured ? status.reason : undefined;
+          connectorCounts.push({ connector: label, signalsFound: signals.length, note });
+          report({ type: "connector:done", connector: label, signalsFound: signals.length, note });
+          return signals;
+        } catch (err) {
+          const error = errorMessage(err);
+          console.error(`[${connector.name}] failed for config "${config.keywords?.join(", ")}":`, err);
+          connectorCounts.push({ connector: label, signalsFound: 0, error });
+          report({ type: "connector:error", connector: label, error });
+          return [];
+        }
+      })
+    );
+    for (const signals of perProvider) allSignals.push(...signals);
   }
 
   if (allSignals.length === 0) {

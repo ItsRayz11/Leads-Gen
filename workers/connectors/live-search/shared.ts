@@ -1,42 +1,38 @@
+import { getProviderSecret } from "@leads/db/secrets.js";
 import type { RawSignal, SearchConfig } from "@leads/core";
 
 export const MAX_RESULTS = 8;
 
-/**
- * Grounded/web-search calls cost more than a plain generation call, and nothing
- * else bounds how often these connectors can be triggered — a saved search
- * re-run twice in quick succession (a double-click, a page reload mid-run)
- * would otherwise fire the same paid search twice for the same result.
- * Per-process only (a cold serverless instance resets it), so this is a
- * courtesy against accidental repeats, not a hard budget cap — there is no
- * spend-tracking infrastructure in this app to build a real one against (see
- * provider-status.ts / provider-gate.ts).
- */
-const COOLDOWN_MS = 30_000;
-
-/** One independent cooldown map per connector, so Gemini/OpenAI/Anthropic running for the same config don't gate each other. */
-export function createCooldownGuard() {
-  const lastRunAt = new Map<string, number>();
-  return {
-    /** True (and does NOT mark) when this exact config is still cooling down. */
-    isCoolingDown(config: SearchConfig): boolean {
-      const key = cooldownKey(config);
-      const last = lastRunAt.get(key);
-      return Boolean(last && Date.now() - last < COOLDOWN_MS);
-    },
-    mark(config: SearchConfig): void {
-      lastRunAt.set(cooldownKey(config), Date.now());
-    },
-  };
+/** Env var first (fast path, matches apps/web/lib/ai/client.ts), else the encrypted Integrations-page key. Shared so all three provider connectors resolve keys the same way. */
+export async function resolveApiKey(envVar: string, providerName: string): Promise<string | null> {
+  if (process.env[envVar]) return process.env[envVar]!;
+  return getProviderSecret(providerName);
 }
 
-function cooldownKey(config: SearchConfig): string {
-  return JSON.stringify({
-    keywords: config.keywords ?? [],
-    industries: config.industries ?? [],
-    geography: config.geography ?? [],
-    excludeKeywords: config.excludeKeywords ?? [],
-  });
+async function readErrorBody(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "");
+  return text.slice(0, 300);
+}
+
+/**
+ * A provider can answer with a 2xx status but a non-JSON body (a proxy
+ * outage page, a CDN challenge page); calling `res.json()` on that throws an
+ * opaque `SyntaxError` that's meaningless in a log. Checks content-type first
+ * so a bad response fails with a message that says what actually happened —
+ * mirrors apps/web/lib/ai/providers.ts's parseJsonResponse, duplicated here
+ * rather than imported since workers doesn't depend on the web app.
+ */
+export async function fetchJson(url: string, init: RequestInit, label: string): Promise<any> {
+  const res = await fetch(url, init);
+  if (!res.ok) throw new Error(`${label} error ${res.status}: ${await readErrorBody(res)}`);
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `${label} returned a non-JSON response (status ${res.status}, content-type "${contentType || "unknown"}"): ${await readErrorBody(res)}`
+    );
+  }
+  return res.json();
 }
 
 /**
@@ -104,16 +100,47 @@ export function buildLiveSearchPrompt(config: SearchConfig): string {
   return lines.join("\n");
 }
 
+/**
+ * Finds the first top-level, balanced `[...]` in a string — unlike a plain
+ * `indexOf("[")`/`lastIndexOf("]")` pair, this isn't fooled by a stray bracket
+ * appearing before or after the real array (a web-search-augmented model
+ * quoting a source with an inline "[1]" citation, for instance), because it
+ * tracks bracket depth and ignores brackets inside string literals.
+ */
+function extractJsonArray(text: string): string | null {
+  const start = text.indexOf("[");
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "[") depth++;
+    else if (ch === "]") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null; // unbalanced — no complete array to parse
+}
+
 /** Pulls the JSON array out of a response, tolerating markdown fences and a sentence of preamble. */
 export function parseLiveSearchResults(text: string): LiveSearchResult[] {
   const withoutFences = text.replace(/```(?:json)?/gi, "").trim();
-  const start = withoutFences.indexOf("[");
-  const end = withoutFences.lastIndexOf("]");
-  if (start === -1 || end <= start) return [];
+  const jsonArrayText = extractJsonArray(withoutFences);
+  if (!jsonArrayText) return [];
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(withoutFences.slice(start, end + 1));
+    parsed = JSON.parse(jsonArrayText);
   } catch {
     return [];
   }

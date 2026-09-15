@@ -5,7 +5,16 @@ import { createServiceRoleClient } from "@leads/db";
  * AI providers are deliberately absent: which model handles which task is
  * driven by `ai_provider_settings` (Settings page), not by this table.
  */
-export type GatedProvider = "web3_career" | "twitterapi_io" | "hunter" | "apollo" | "prospeo" | "pdl";
+export type GatedProvider =
+  | "web3_career"
+  | "twitterapi_io"
+  | "hunter"
+  | "apollo"
+  | "prospeo"
+  | "pdl"
+  | "serper"
+  | "decodo"
+  | "firecrawl";
 
 let disabledProviders: Promise<Set<string>> | null = null;
 const announced = new Set<string>();

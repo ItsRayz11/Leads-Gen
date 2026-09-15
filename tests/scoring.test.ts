@@ -527,8 +527,29 @@ describe("vertical2GeneralRules", () => {
       }),
       vertical2GeneralRules
     );
-    expect(result.dimensions.fit).toBe(100);
+    // "fit" now also has a has-no-website rule (for Serper/Decodo Maps
+    // leads, see below) that an HN post can never satisfy, so the one fit
+    // rule an HN launch post *can* match caps out at half the dimension's
+    // available points rather than all of them.
+    expect(result.dimensions.fit).toBe(50);
     expect(result.dimensions.intent).toBe(100);
+  });
+
+  it("puts a websiteless local business (Serper/Decodo Maps) at full fit", () => {
+    const result = scoreLead(
+      draft({
+        vertical: "general",
+        signals: [
+          signal({
+            vertical: "general",
+            sourceConnector: "serper-maps",
+            meta: { hasWebsite: false },
+          }),
+        ],
+      }),
+      vertical2GeneralRules
+    );
+    expect(result.dimensions.fit).toBe(50);
   });
 
   it("decays recency faster than the hiring vertical does", () => {

@@ -208,6 +208,63 @@ export async function getAllProviderStatuses(): Promise<ProviderStatus[]> {
     },
   });
 
+  const localBusinessCapabilities: ProviderCapabilities = {
+    industry: cap(false, "used as a Maps search term, not a structured filter"),
+    geography: cap(true, "used directly in the Maps query"),
+    jobTitle: cap(false),
+    companySize: cap(false),
+  };
+
+  const serper = await keyedProviderStatus("SERPER_API_KEY", "serper");
+  statuses.push({
+    connector: "serper-maps",
+    label: "Local businesses without a website (Serper)",
+    vertical: "general",
+    configured: serper.hasKey && serper.enabled,
+    reason: !serper.hasKey
+      ? "no API key configured — add one on the Integrations page"
+      : !serper.enabled
+        ? "switched off on the Integrations page"
+        : "ready",
+    capabilities: localBusinessCapabilities,
+  });
+
+  const decodoConfigured = Boolean(
+    (process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) || (await getProviderSecret("decodo"))
+  );
+  const decodoEnabled = await isProviderEnabled("decodo");
+  statuses.push({
+    connector: "decodo-maps",
+    label: "Local businesses (Decodo)",
+    vertical: "general",
+    configured: decodoConfigured && decodoEnabled,
+    reason: !decodoConfigured
+      ? "no credentials configured — add DECODO_USERNAME+DECODO_PASSWORD, or a \"username:password\" key on the Integrations page"
+      : !decodoEnabled
+        ? "switched off on the Integrations page"
+        : "ready",
+    capabilities: localBusinessCapabilities,
+  });
+
+  const firecrawl = await keyedProviderStatus("FIRECRAWL_API_KEY", "firecrawl");
+  statuses.push({
+    connector: "quora-signals",
+    label: "Quora signals (Firecrawl)",
+    vertical: "general",
+    configured: firecrawl.hasKey && firecrawl.enabled,
+    reason: !firecrawl.hasKey
+      ? "no API key configured — add one on the Integrations page"
+      : !firecrawl.enabled
+        ? "switched off on the Integrations page"
+        : "ready",
+    capabilities: {
+      industry: cap(false, "used as a search keyword, not a structured filter"),
+      geography: cap(false, "Quora questions carry no reliable location data"),
+      jobTitle: cap(false),
+      companySize: cap(false),
+    },
+  });
+
   const dbAgencies = (await listTargetCompanies("agency")).filter((r) => r.enabled);
   const agencyConfig = readJsonConfig<{ agencies: unknown[] }>("config/target-companies/agencies.json");
   const fileAgencyCount = agencyConfig?.agencies?.length ?? 0;

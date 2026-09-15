@@ -85,16 +85,22 @@ npm run run:vertical3
 
 ## Vertical 2 — General B2B/B2C
 
-Driven by the `search_configs` table (or `config/search-configs/vertical2.json` as a fallback when that table has no enabled rows) rather than a fixed pipeline — add keyword/industry/geography configs there to reshape what this vertical looks for. Currently has one connector: Hacker News (free, no key, via the public Algolia search API) — matches "Show HN"/"Launch HN" posts (brand-new companies) and hiring-keyword posts within the last 30 days. Run with:
+Driven by the `search_configs` table (or `config/search-configs/vertical2.json` as a fallback when that table has no enabled rows) rather than a fixed pipeline — add keyword/industry/geography configs there to reshape what this vertical looks for. Every connector below runs once per enabled `search_configs` row, keyed off that row's keywords/geography — a config with no matching field for a connector (e.g. Hacker News has no geography to search on) just doesn't use it, rather than erroring. Run with:
 
 ```
 npm run run:vertical2
 ```
 
+- **Hacker News** (free, no key, via the public Algolia search API) — matches "Show HN"/"Launch HN" posts (brand-new companies) and hiring-keyword posts within the last 30 days.
+- **Serper Maps** (`SERPER_API_KEY`, paid, serper.dev) — searches Google Maps for `keyword in geography` and keeps only businesses with **no website on file**: a direct fit for the user's own web/marketing services, not a hiring or ad-spend signal. Businesses that already have a site are dropped entirely, by design.
+- **Decodo Maps** (`DECODO_USERNAME` + `DECODO_PASSWORD`, paid, decodo.com — on the Integrations page these pack into one `username:password` secret) — a general Google Maps business search with no "missing website" filter, so pointing it at a keyword like "marketing agency" also works as an agency-discovery source. Runs alongside Serper for the same query rather than replacing it, so results from either provider aren't lost to the other's blind spots.
+- **Quora signals** (`FIRECRAWL_API_KEY`, paid, firecrawl.dev) — searches `site:quora.com` for the config's keywords, surfacing people publicly discussing (or asking about) a relevant topic. Upvote/answer counts are extracted best-effort from the scraped page and default to 0 when Quora's markup doesn't expose them — needs a human glance before treating a match as a confirmed lead, same as the Twitter signal connectors.
+
 ## Optional paid connectors
 
 - **Web3.career**: request a free API token at web3.career/web3-jobs-api, set `WEB3_CAREER_API_TOKEN`.
 - **Twitter hiring/agency-signal search**: needs a twitterapi.io key (paid, third-party), set `TWITTERAPI_IO_KEY`. Without it, these connectors silently skip themselves.
+- **Serper / Decodo / Firecrawl** (vertical 2 — see above): each silently skips itself without its key/credentials, same as the providers above.
 
 ## Contact enrichment (Hunter / Prospeo / Apollo — optional, paid)
 

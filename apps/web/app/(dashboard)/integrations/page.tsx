@@ -17,6 +17,9 @@ const LEAD_DATA_PROVIDERS = [
   { key: "apollo", name: "Apollo" },
   { key: "prospeo", name: "Prospeo" },
   { key: "pdl", name: "People Data Labs" },
+  { key: "serper", name: "Serper (local businesses without a website)", docsUrl: "https://serper.dev" },
+  { key: "decodo", name: "Decodo (local businesses, username:password)", docsUrl: "https://decodo.com" },
+  { key: "firecrawl", name: "Firecrawl (Quora signals)", docsUrl: "https://firecrawl.dev" },
 ] as const;
 
 const AI_PROVIDERS = [

@@ -1,12 +1,20 @@
 import type { RawSignal, SourceConnector } from "@leads/core";
 import { hackerNewsConnector } from "../connectors/generic/hackernews.js";
+import { serperMapsConnector } from "../connectors/local-business/serper-maps.js";
+import { decodoMapsConnector } from "../connectors/local-business/decodo-maps.js";
+import { quoraSignalsConnector } from "../connectors/community/quora-signals.js";
 import { loadSearchConfigs } from "./load-search-configs.js";
 import { dedupeAndUpsert } from "./dedupe-and-upsert.js";
 import { vertical2GeneralRules } from "../scoring/rules/vertical2-general.js";
 import { isRunAsScript, runStatus, type ConnectorCount, type RunResult } from "./shared.js";
 import { errorMessage, safeReporter, type ProgressReporter } from "./progress.js";
 
-const CONNECTORS: SourceConnector[] = [hackerNewsConnector];
+const CONNECTORS: SourceConnector[] = [
+  hackerNewsConnector,
+  serperMapsConnector, // requires SERPER_API_KEY, skips itself if absent
+  decodoMapsConnector, // requires DECODO_USERNAME+DECODO_PASSWORD, skips itself if absent
+  quoraSignalsConnector, // requires FIRECRAWL_API_KEY, skips itself if absent
+];
 
 /** A readable name for one config's keyword set, used in progress labels. */
 function configLabel(keywords: string[] | undefined): string {

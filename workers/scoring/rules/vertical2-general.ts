@@ -36,6 +36,13 @@ export const vertical2GeneralRules: ScoreRule[] = [
     weight: 15,
     test: (d) => anySignal(d, (m) => Boolean(m.isLaunchPost)),
   },
+  {
+    id: "has-no-website",
+    description: "A local business with no website on file (Serper/Decodo Maps) — a direct fit for web/marketing services",
+    dimension: "fit",
+    weight: 15,
+    test: (d) => anySignal(d, (m) => m.hasWebsite === false),
+  },
 
   // ---- freshness: a month-old thread is cold ----
   {

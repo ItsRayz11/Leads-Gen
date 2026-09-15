@@ -43,16 +43,36 @@ export async function callOpenAI({ apiKey, model, prompt, temperature }: Provide
 }
 
 export async function callAnthropic({ apiKey, model, prompt, temperature }: ProviderCallParams): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model, max_tokens: 1024, temperature, messages: [{ role: "user", content: prompt }] }),
-  });
-  if (!res.ok) throw new Error(`Anthropic error ${res.status}: ${await parseErrorBody(res)}`);
+  const headers = {
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "Content-Type": "application/json",
+  };
+  const call = (includeTemperature: boolean) =>
+    fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        ...(includeTemperature ? { temperature } : {}),
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+  let res = await call(true);
+  if (!res.ok) {
+    const body = await parseErrorBody(res);
+    // Claude 5 family models reject `temperature` outright ("`temperature` is
+    // deprecated for this model") — retry once without it rather than failing
+    // every call for a param older models accept fine.
+    if (res.status === 400 && /temperature/i.test(body) && /deprecated/i.test(body)) {
+      res = await call(false);
+      if (!res.ok) throw new Error(`Anthropic error ${res.status}: ${await parseErrorBody(res)}`);
+    } else {
+      throw new Error(`Anthropic error ${res.status}: ${body}`);
+    }
+  }
   const data = await parseJsonResponse(res, "Anthropic");
   const text = data.content?.[0]?.text;
   if (typeof text !== "string") throw new Error("Anthropic response did not include message text.");

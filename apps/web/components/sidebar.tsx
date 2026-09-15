@@ -22,6 +22,7 @@ import {
   Download,
   Plug,
   Settings,
+  Target,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -81,15 +82,20 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
-      <div className="px-4 py-4">
-        <p className="text-sm font-semibold leading-tight">Lead Intelligence</p>
-        <p className="text-xs text-muted-foreground">Workspace</p>
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card">
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-4">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <Target className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold leading-tight tracking-tight">Lead Intelligence</p>
+          <p className="text-xs text-muted-foreground">Workspace</p>
+        </div>
       </div>
-      <nav className="space-y-4 px-2 pb-4">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-4">
         {NAV.map((group) => (
           <div key={group.section}>
-            <p className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
+            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
               {group.section}
             </p>
             <div className="space-y-0.5">
@@ -101,10 +107,10 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                      "flex items-center gap-2 rounded-md border-l-2 px-2 py-1.5 text-sm transition-colors",
                       active
-                        ? "bg-primary/15 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        ? "border-primary bg-primary/10 font-medium text-primary"
+                        : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -116,7 +122,7 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="mt-2 border-t border-border px-3 py-3 text-xs text-muted-foreground">
+      <div className="border-t border-border px-3 py-3 text-xs text-muted-foreground">
         <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>{" "}
         <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">K</kbd>{" "}
         to jump anywhere

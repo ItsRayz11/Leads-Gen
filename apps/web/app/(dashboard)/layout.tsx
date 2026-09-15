@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { NotificationBell } from "../../components/notification-bell";
 import { CommandPalette } from "../../components/command-palette";
 import { CommandPaletteTrigger } from "../../components/command-palette-trigger";
+import { PageHeading } from "../../components/page-heading";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -17,11 +18,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Sidebar />
       <CommandPalette />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-border px-6">
-          <CommandPaletteTrigger />
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <PageHeading />
           <div className="flex items-center gap-3">
+            <CommandPaletteTrigger />
             <NotificationBell />
-            <span className="text-xs text-muted-foreground">{user?.email}</span>
+            <span className="hidden text-xs text-muted-foreground md:inline">{user?.email}</span>
             <form action={signOut}>
               <Button type="submit" variant="ghost" size="sm">
                 Sign out

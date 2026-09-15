@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Target } from "lucide-react";
 import { signIn } from "./actions";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
@@ -21,10 +22,18 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-border bg-card p-6">
-        <div>
-          <h1 className="text-lg font-semibold">Lead Intelligence Workspace</h1>
-          <p className="text-sm text-muted-foreground">Private — sign in to continue.</p>
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4 rounded-lg border border-border bg-card p-6 shadow-md"
+      >
+        <div className="flex flex-col items-center gap-3 pb-1 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Target className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Lead Intelligence Workspace</h1>
+            <p className="text-sm text-muted-foreground">Private — sign in to continue.</p>
+          </div>
         </div>
         <div className="space-y-2">
           <Input type="email" name="email" placeholder="Email" required autoFocus />

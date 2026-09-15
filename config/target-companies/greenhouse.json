@@ -1,4 +1,18 @@
 {
   "_comment": "Board tokens = the slug in a company's Greenhouse job board URL, e.g. https://job-boards.greenhouse.io/{token}. Add companies you want monitored for hiring signals here.",
-  "boardTokens": []
+  "boardTokens": [
+    "coinbase",
+    "anthropic",
+    "scaleai",
+    "ripple",
+    "consensys",
+    "gemini",
+    "fireblocks",
+    "aptoslabs",
+    "galaxy",
+    "blockchain",
+    "jumpcrypto",
+    "messari",
+    "nearfoundation"
+  ]
 }

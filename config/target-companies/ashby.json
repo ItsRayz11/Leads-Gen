@@ -1,4 +1,25 @@
 {
   "_comment": "Ashby job board names, e.g. https://jobs.ashbyhq.com/{boardName}. Add companies you want monitored for hiring signals here.",
-  "boardNames": []
+  "boardNames": [
+    "openai",
+    "perplexity",
+    "cohere",
+    "runway",
+    "character",
+    "suno",
+    "elevenlabs",
+    "cursor",
+    "replit",
+    "lovable",
+    "uniswap",
+    "opensea",
+    "paradigm",
+    "alchemy",
+    "dune",
+    "blockworks",
+    "turnkey",
+    "phantom",
+    "magiceden",
+    "mystenlabs"
+  ]
 }
